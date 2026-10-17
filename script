@@ -1,5 +1,5 @@
 -- ============================================
--- Tap Simulator REBORN — v5
+-- Tap Simulator REBORN — v6
 -- ============================================
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
@@ -15,7 +15,11 @@ local EggHatchResult = RS.RemoteServices.EggService.RE.EggHatchResult
 local AutoKnock = { enabled = false }
 local AutoEnchant = { enabled = false, slot = 1, wanted = {} }
 local AntiAFK = { enabled = false }
-local Webhook = { enabled = false, url = "", ping = "" }
+local Webhook = {
+    enabled = false, url = "", pingMode = "None", customPing = "",
+    rarities = { Common=false, Rare=false, Epic=true, Legendary=true, Mythical=true, Secret=true },
+    tiers    = { Normal=false, Golden=true, Diamond=true, Rainbow=true },
+}
 
 local TIERED    = { "Power", "Precision", "Renewal", "Fortune", "Payday", "Scavenger", "Lucky", "Collector", "Alchemist" }
 local LEGENDARY = { "Frenzy", "Autopilot", "Jackpot", "Prospector", "Four-Leaf", "Golden Touch" }
@@ -30,8 +34,12 @@ local C = {
     accent2 = Color3.fromRGB(90, 160, 255), text = Color3.fromRGB(240, 240, 248),
     textDim = Color3.fromRGB(180, 180, 195), muted = Color3.fromRGB(120, 120, 140),
     good = Color3.fromRGB(90, 220, 140), bad = Color3.fromRGB(240, 90, 100),
-    warn = Color3.fromRGB(255, 180, 90), legendary = Color3.fromRGB(255, 170, 80),
-    mythic = Color3.fromRGB(200, 110, 230), secret = Color3.fromRGB(255, 110, 130),
+    warn = Color3.fromRGB(255, 180, 90),
+    rCommon=Color3.fromRGB(158,158,158), rRare=Color3.fromRGB(79,195,247),
+    rEpic=Color3.fromRGB(171,71,188), rLegendary=Color3.fromRGB(255,179,0),
+    rMythical=Color3.fromRGB(233,30,99), rSecret=Color3.fromRGB(244,67,54),
+    tGolden=Color3.fromRGB(255,215,0), tDiamond=Color3.fromRGB(130,220,255),
+    tRainbow=Color3.fromRGB(255,120,200),
 }
 
 pcall(function() lp.PlayerGui:FindFirstChild("TSRebornMenu"):Destroy() end)
@@ -77,13 +85,12 @@ local title = Instance.new("TextLabel", header)
 title.BackgroundTransparency = 1; title.Position = UDim2.new(0, 62, 0, 10)
 title.Size = UDim2.new(1, -160, 0, 22)
 title.Text = "Tap Sim REBORN"; title.TextColor3 = C.text
-title.Font = Enum.Font.GothamBold; title.TextSize = 16
-title.TextXAlignment = Enum.TextXAlignment.Left
+title.Font = Enum.Font.GothamBold; title.TextSize = 16; title.TextXAlignment = Enum.TextXAlignment.Left
 
 local subtitle = Instance.new("TextLabel", header)
 subtitle.BackgroundTransparency = 1; subtitle.Position = UDim2.new(0, 62, 0, 32)
 subtitle.Size = UDim2.new(1, -160, 0, 16)
-subtitle.Text = "Premium Script Hub · v5"
+subtitle.Text = "Premium Script Hub · v6"
 subtitle.TextColor3 = C.muted; subtitle.Font = Enum.Font.Gotham; subtitle.TextSize = 11
 subtitle.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -179,6 +186,7 @@ end
 local function card(parent)
     local c = Instance.new("Frame", parent); c.BackgroundColor3 = C.card; c.BorderSizePixel = 0
     c.Size = UDim2.new(1, 0, 0, 40); c.AutomaticSize = Enum.AutomaticSize.Y
+    c.ClipsDescendants = true
     Instance.new("UICorner", c).CornerRadius = UDim.new(0, 10)
     local st = Instance.new("UIStroke", c); st.Color = C.border; st.Thickness = 1; st.Transparency = 0.6
     local pd = Instance.new("UIPadding", c)
@@ -223,16 +231,57 @@ local function tinyLabel(parent, text)
     l.Font = Enum.Font.GothamBold; l.TextSize = 10; l.TextXAlignment = Enum.TextXAlignment.Left
 end
 
-local function makeTB(parent, placeholder, onChange)
-    local tb = Instance.new("TextBox", parent)
-    tb.Size = UDim2.new(1, 0, 0, 32); tb.BackgroundColor3 = C.cardAlt; tb.BorderSizePixel = 0
-    tb.Text = ""; tb.PlaceholderText = placeholder
-    tb.TextColor3 = C.text; tb.PlaceholderColor3 = C.muted
-    tb.Font = Enum.Font.Gotham; tb.TextSize = 11; tb.ClearTextOnFocus = false
-    Instance.new("UICorner", tb).CornerRadius = UDim.new(0, 6)
-    local tp = Instance.new("UIPadding", tb); tp.PaddingLeft = UDim.new(0, 8); tp.PaddingRight = UDim.new(0, 8)
+local function makeTB(parent, placeholder, initial, onChange)
+    local f = Instance.new("Frame", parent)
+    f.Size = UDim2.new(1, 0, 0, 34); f.BackgroundColor3 = C.cardAlt; f.BorderSizePixel = 0
+    f.ClipsDescendants = true
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
+    local tb = Instance.new("TextBox", f)
+    tb.Size = UDim2.new(1, -20, 1, 0); tb.Position = UDim2.new(0, 10, 0, 0)
+    tb.BackgroundTransparency = 1; tb.Text = initial or ""
+    tb.PlaceholderText = placeholder; tb.TextColor3 = C.text
+    tb.PlaceholderColor3 = C.muted; tb.Font = Enum.Font.Gotham; tb.TextSize = 11
+    tb.ClearTextOnFocus = false; tb.TextXAlignment = Enum.TextXAlignment.Left
+    tb.TextTruncate = Enum.TextTruncate.AtEnd
     tb.FocusLost:Connect(function() onChange(tb.Text) end)
     return tb
+end
+
+local function primaryBtn(parent, label, onClick)
+    local b = Instance.new("TextButton", parent)
+    b.Size = UDim2.new(1, 0, 0, 34); b.BackgroundColor3 = C.accent1; b.BorderSizePixel = 0
+    b.Text = label; b.TextColor3 = Color3.new(1,1,1)
+    b.Font = Enum.Font.GothamBold; b.TextSize = 12; b.AutoButtonColor = false
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    local gr = Instance.new("UIGradient", b)
+    gr.Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, C.accent1), ColorSequenceKeypoint.new(1, C.accent2) })
+    gr.Rotation = 45
+    b.MouseEnter:Connect(function() tween(b, { BackgroundColor3 = C.accent2 }, 0.12) end)
+    b.MouseLeave:Connect(function() tween(b, { BackgroundColor3 = C.accent1 }, 0.12) end)
+    b.MouseButton1Click:Connect(onClick)
+    return b
+end
+
+local function segmented(parent, options, initial, onSelect)
+    local row = Instance.new("Frame", parent)
+    row.BackgroundTransparency = 1; row.Size = UDim2.new(1, 0, 0, 32)
+    local l = Instance.new("UIListLayout", row); l.FillDirection = Enum.FillDirection.Horizontal; l.Padding = UDim.new(0, 6)
+    local buttons = {}
+    local function refresh(sel)
+        for k, b in pairs(buttons) do
+            if k == sel then tween(b, { BackgroundColor3 = C.accent1 }, 0.15); b.TextColor3 = Color3.new(1,1,1)
+            else tween(b, { BackgroundColor3 = C.cardAlt }, 0.15); b.TextColor3 = C.textDim end
+        end
+    end
+    for i, opt in ipairs(options) do
+        local b = Instance.new("TextButton", row)
+        b.Size = UDim2.new(1/#options, -5, 1, 0); b.Text = opt
+        b.Font = Enum.Font.GothamBold; b.TextSize = 11; b.BorderSizePixel = 0; b.AutoButtonColor = false
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+        buttons[opt] = b
+        b.MouseButton1Click:Connect(function() onSelect(opt); refresh(opt) end)
+    end
+    refresh(initial)
 end
 
 local function slotRow(parent, currentSlot, onSelect)
@@ -254,42 +303,6 @@ local function slotRow(parent, currentSlot, onSelect)
         b.MouseButton1Click:Connect(function() onSelect(i); refresh(i) end)
     end
     refresh(currentSlot)
-end
-
-local function checkRow(parent, enchantName, dotColor)
-    local row = Instance.new("TextButton", parent); row.BackgroundColor3 = C.card
-    row.BorderSizePixel = 0; row.Size = UDim2.new(1, 0, 0, 32); row.Text = ""; row.AutoButtonColor = false
-    Instance.new("UICorner", row).CornerRadius = UDim.new(0, 8)
-    local dot = Instance.new("Frame", row)
-    dot.Size = UDim2.new(0, 8, 0, 8); dot.Position = UDim2.new(0, 12, 0.5, -4)
-    dot.BackgroundColor3 = dotColor or C.muted; dot.BorderSizePixel = 0
-    Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
-    local lab = Instance.new("TextLabel", row)
-    lab.BackgroundTransparency = 1; lab.Position = UDim2.new(0, 28, 0, 0); lab.Size = UDim2.new(1, -62, 1, 0)
-    lab.Text = enchantName; lab.TextColor3 = C.text
-    lab.Font = Enum.Font.GothamMedium; lab.TextSize = 12; lab.TextXAlignment = Enum.TextXAlignment.Left
-    local box = Instance.new("Frame", row)
-    box.Size = UDim2.new(0, 20, 0, 20); box.Position = UDim2.new(1, -28, 0.5, -10)
-    box.BackgroundColor3 = C.cardAlt; box.BorderSizePixel = 0
-    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 5)
-    local bs = Instance.new("UIStroke", box); bs.Color = C.border; bs.Thickness = 1
-    local check = Instance.new("TextLabel", box)
-    check.BackgroundTransparency = 1; check.Size = UDim2.new(1, 0, 1, 0); check.Text = ""
-    check.TextColor3 = Color3.new(1,1,1); check.Font = Enum.Font.GothamBold; check.TextSize = 14
-    local function refresh()
-        if AutoEnchant.wanted[enchantName] then
-            tween(box, { BackgroundColor3 = C.accent1 }, 0.1); bs.Color = C.accent1; check.Text = "✓"
-        else
-            tween(box, { BackgroundColor3 = C.cardAlt }, 0.1); bs.Color = C.border; check.Text = ""
-        end
-    end
-    row.MouseEnter:Connect(function() tween(row, { BackgroundColor3 = C.hover }, 0.1) end)
-    row.MouseLeave:Connect(function() tween(row, { BackgroundColor3 = C.card }, 0.1) end)
-    row.MouseButton1Click:Connect(function()
-        AutoEnchant.wanted[enchantName] = not AutoEnchant.wanted[enchantName] or nil
-        refresh()
-    end)
-    refresh()
 end
 
 local function dropdown(parent, labelText, tierDot)
@@ -326,9 +339,42 @@ local function dropdown(parent, labelText, tierDot)
     return bodyFrame
 end
 
+local function checkRow(parent, name, dotColor, getState, setState)
+    local row = Instance.new("TextButton", parent); row.BackgroundColor3 = C.card
+    row.BorderSizePixel = 0; row.Size = UDim2.new(1, 0, 0, 32); row.Text = ""; row.AutoButtonColor = false
+    Instance.new("UICorner", row).CornerRadius = UDim.new(0, 8)
+    local dot = Instance.new("Frame", row)
+    dot.Size = UDim2.new(0, 8, 0, 8); dot.Position = UDim2.new(0, 12, 0.5, -4)
+    dot.BackgroundColor3 = dotColor or C.muted; dot.BorderSizePixel = 0
+    Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+    local lab = Instance.new("TextLabel", row)
+    lab.BackgroundTransparency = 1; lab.Position = UDim2.new(0, 28, 0, 0); lab.Size = UDim2.new(1, -62, 1, 0)
+    lab.Text = name; lab.TextColor3 = C.text
+    lab.Font = Enum.Font.GothamMedium; lab.TextSize = 12; lab.TextXAlignment = Enum.TextXAlignment.Left
+    local box = Instance.new("Frame", row)
+    box.Size = UDim2.new(0, 20, 0, 20); box.Position = UDim2.new(1, -28, 0.5, -10)
+    box.BackgroundColor3 = C.cardAlt; box.BorderSizePixel = 0
+    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 5)
+    local bs = Instance.new("UIStroke", box); bs.Color = C.border; bs.Thickness = 1
+    local check = Instance.new("TextLabel", box)
+    check.BackgroundTransparency = 1; check.Size = UDim2.new(1, 0, 1, 0); check.Text = ""
+    check.TextColor3 = Color3.new(1,1,1); check.Font = Enum.Font.GothamBold; check.TextSize = 14
+    local function refresh()
+        if getState() then
+            tween(box, { BackgroundColor3 = C.accent1 }, 0.1); bs.Color = C.accent1; check.Text = "✓"
+        else
+            tween(box, { BackgroundColor3 = C.cardAlt }, 0.1); bs.Color = C.border; check.Text = ""
+        end
+    end
+    row.MouseEnter:Connect(function() tween(row, { BackgroundColor3 = C.hover }, 0.1) end)
+    row.MouseLeave:Connect(function() tween(row, { BackgroundColor3 = C.card }, 0.1) end)
+    row.MouseButton1Click:Connect(function() setState(not getState()); refresh() end)
+    refresh()
+end
+
 local function statusBar(parent)
     local f = Instance.new("Frame", parent); f.BackgroundColor3 = C.cardAlt; f.BorderSizePixel = 0
-    f.Size = UDim2.new(1, 0, 0, 32)
+    f.Size = UDim2.new(1, 0, 0, 32); f.ClipsDescendants = true
     Instance.new("UICorner", f).CornerRadius = UDim.new(0, 8)
     local dot = Instance.new("Frame", f)
     dot.Size = UDim2.new(0, 8, 0, 8); dot.Position = UDim2.new(0, 12, 0.5, -4)
@@ -337,7 +383,7 @@ local function statusBar(parent)
     local l = Instance.new("TextLabel", f)
     l.BackgroundTransparency = 1; l.Position = UDim2.new(0, 28, 0, 0); l.Size = UDim2.new(1, -36, 1, 0)
     l.Text = "idle"; l.TextColor3 = C.textDim; l.Font = Enum.Font.GothamMedium; l.TextSize = 11
-    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.TextXAlignment = Enum.TextXAlignment.Left; l.TextTruncate = Enum.TextTruncate.AtEnd
     return l, dot
 end
 
@@ -363,15 +409,26 @@ local encStatus, encDot = statusBar(pageE)
 sectionHeader(pageE, "WANTED ENCHANTS")
 local wc = card(pageE)
 local commonBody = dropdown(wc, "Common Enchants", C.textDim)
-for _, n in ipairs(TIERED) do for _, t in ipairs({ "I","II","III" }) do checkRow(commonBody, n.." "..t, C.textDim) end end
-local legBody = dropdown(wc, "Legendary", C.legendary)
-for _, n in ipairs(LEGENDARY) do checkRow(legBody, n, C.legendary) end
-local mythBody = dropdown(wc, "Mythic", C.mythic)
-for _, n in ipairs(MYTHIC) do checkRow(mythBody, n, C.mythic) end
-local secBody = dropdown(wc, "Secret", C.secret)
-for _, n in ipairs(SECRET) do checkRow(secBody, n, C.secret) end
+for _, n in ipairs(TIERED) do for _, t in ipairs({ "I","II","III" }) do
+    local key = n.." "..t
+    checkRow(commonBody, key, C.textDim, function() return AutoEnchant.wanted[key] end, function(v) AutoEnchant.wanted[key] = v or nil end)
+end end
+local legBody = dropdown(wc, "Legendary", C.rLegendary)
+for _, n in ipairs(LEGENDARY) do
+    checkRow(legBody, n, C.rLegendary, function() return AutoEnchant.wanted[n] end, function(v) AutoEnchant.wanted[n] = v or nil end)
+end
+local mythBody = dropdown(wc, "Mythic", C.rMythical)
+for _, n in ipairs(MYTHIC) do
+    checkRow(mythBody, n, C.rMythical, function() return AutoEnchant.wanted[n] end, function(v) AutoEnchant.wanted[n] = v or nil end)
+end
+local secBody = dropdown(wc, "Secret", C.rSecret)
+for _, n in ipairs(SECRET) do
+    checkRow(secBody, n, C.rSecret, function() return AutoEnchant.wanted[n] end, function(v) AutoEnchant.wanted[n] = v or nil end)
+end
 
+-- MISC PAGE
 local pageM = makePage("Misc")
+
 sectionHeader(pageM, "ANTI-AFK")
 local afkCard = card(pageM)
 toggleRow(afkCard, "Enabled", "Prevents the 20-minute idle kick", false, function(v) AntiAFK.enabled = v end)
@@ -380,17 +437,39 @@ sectionHeader(pageM, "DISCORD WEBHOOK")
 local whCard = card(pageM)
 toggleRow(whCard, "Enabled", "Posts hatches to Discord", false, function(v) Webhook.enabled = v end)
 tinyLabel(whCard, "WEBHOOK URL")
-makeTB(whCard, "https://discord.com/api/webhooks/...", function(t) Webhook.url = t end)
-tinyLabel(whCard, "PING (optional)")
-makeTB(whCard, "@everyone, @here, or <@userid>", function(t) Webhook.ping = t end)
+makeTB(whCard, "https://discord.com/api/webhooks/...", "", function(t) Webhook.url = t end)
+tinyLabel(whCard, "PING MODE")
+segmented(whCard, { "None", "@everyone", "@here", "User" }, "None", function(opt) Webhook.pingMode = opt end)
+tinyLabel(whCard, "CUSTOM USER ID (only used when Ping Mode = User)")
+makeTB(whCard, "123456789012345678", "", function(t) Webhook.customPing = t end)
+
 local whStatus, whDot = statusBar(pageM)
+
+sectionHeader(pageM, "FILTERS — WHAT TO SEND")
+local filterCard = card(pageM)
+local rarityBody = dropdown(filterCard, "Rarities", C.accent1)
+local rarityOrder = { "Common","Rare","Epic","Legendary","Mythical","Secret" }
+local rarityColors = { Common=C.rCommon, Rare=C.rRare, Epic=C.rEpic, Legendary=C.rLegendary, Mythical=C.rMythical, Secret=C.rSecret }
+for _, r in ipairs(rarityOrder) do
+    checkRow(rarityBody, r, rarityColors[r], function() return Webhook.rarities[r] end, function(v) Webhook.rarities[r] = v end)
+end
+local tierBody = dropdown(filterCard, "Tiers (always sends if checked)", C.tGolden)
+local tierOrder = { "Normal","Golden","Diamond","Rainbow" }
+local tierColors = { Normal=C.muted, Golden=C.tGolden, Diamond=C.tDiamond, Rainbow=C.tRainbow }
+for _, t in ipairs(tierOrder) do
+    checkRow(tierBody, t, tierColors[t], function() return Webhook.tiers[t] end, function(v) Webhook.tiers[t] = v end)
+end
+
+primaryBtn(filterCard, "SEND TEST WEBHOOK", function()
+    _G.__tsrSendTest()
+end)
 
 local pageI = makePage("Info")
 sectionHeader(pageI, "ABOUT")
 local ic = card(pageI)
 local info = Instance.new("TextLabel", ic); info.BackgroundTransparency = 1
-info.Size = UDim2.new(1, 0, 0, 140)
-info.Text = "Tap Simulator REBORN Hub\n\n• Auto Trick-or-Treat (Halloween)\n• Auto-Enchant with filter list\n• Anti-AFK\n• Discord hatch webhook\n\nDrag the title bar to move.\n– minimizes, × closes."
+info.Size = UDim2.new(1, 0, 0, 160)
+info.Text = "Tap Simulator REBORN Hub\n\n• Auto Trick-or-Treat\n• Auto-Enchant with filter list\n• Anti-AFK\n• Discord hatch webhook with rarity + tier filters\n\nDrag the title bar to move.\n– minimizes, × closes."
 info.TextColor3 = C.textDim; info.Font = Enum.Font.Gotham; info.TextSize = 12
 info.TextXAlignment = Enum.TextXAlignment.Left; info.TextYAlignment = Enum.TextYAlignment.Top
 info.TextWrapped = true
@@ -455,9 +534,7 @@ task.spawn(function()
                 if not waitForHalloween() then
                     setStatus(knockStatus, knockDot, "load failed · retry 10s", C.bad)
                     task.wait(10); ready = false
-                else
-                    task.wait(TRAVEL_WAIT)
-                end
+                else task.wait(TRAVEL_WAIT) end
             end
             if ready then
                 local houses = getHouses()
@@ -497,8 +574,7 @@ task.spawn(function()
                 end
             end
         else
-            setStatus(knockStatus, knockDot, "idle", C.muted)
-            task.wait(0.5)
+            setStatus(knockStatus, knockDot, "idle", C.muted); task.wait(0.5)
         end
     end
 end)
@@ -517,10 +593,8 @@ task.spawn(function()
     while true do
         if AutoEnchant.enabled then
             local petId = getPetId()
-            if not petId then
-                setStatus(encStatus, encDot, "no pet selected", C.bad); task.wait(1)
-            elseif petId == lastKeptPet then
-                setStatus(encStatus, encDot, "waiting for new pet…", C.warn); task.wait(0.5)
+            if not petId then setStatus(encStatus, encDot, "no pet selected", C.bad); task.wait(1)
+            elseif petId == lastKeptPet then setStatus(encStatus, encDot, "waiting for new pet…", C.warn); task.wait(0.5)
             else
                 local s = Enc.GetState:InvokeServer()
                 local p = s and s.Enchanting and s.Enchanting.Pending
@@ -547,14 +621,11 @@ task.spawn(function()
                         local pp = st and st.Enchanting and st.Enchanting.Pending
                         if pp and pp.Token then Enc.Resolve:InvokeServer({ Token = pp.Token, UseNew = false }) end
                     else
-                        setStatus(encStatus, encDot, "error · " .. tostring(res and res.Reason or "?"), C.bad)
-                        task.wait(0.3)
+                        setStatus(encStatus, encDot, "error · " .. tostring(res and res.Reason or "?"), C.bad); task.wait(0.3)
                     end
                 end
             end
-        else
-            setStatus(encStatus, encDot, "idle", C.muted); task.wait(0.3)
-        end
+        else setStatus(encStatus, encDot, "idle", C.muted); task.wait(0.3) end
     end
 end)
 
@@ -567,57 +638,96 @@ Players.LocalPlayer.Idled:Connect(function()
     vu:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
 end)
 
--- WEBHOOK (hatches)
-local function sendWebhook(payload)
-    if not Webhook.enabled or Webhook.url == "" then return end
-    local req = http_request or request or (syn and syn.request)
-    if not req then
-        setStatus(whStatus, whDot, "no http function in executor", C.bad); return
+-- WEBHOOK
+local RARITY_COLOR = { Common=0x9E9E9E, Rare=0x4FC3F7, Epic=0xAB47BC, Legendary=0xFFB300, Mythical=0xE91E63, Secret=0xF44336 }
+local RARITY_EMOJI = { Common="⚪", Rare="🔵", Epic="🟣", Legendary="🟡", Mythical="🩷", Secret="⭐" }
+local TIER_PREFIX  = { Normal="", Golden="✨ ", Diamond="💎 ", Rainbow="🌈 " }
+
+local scriptStart = os.clock()
+local sessionPets, sessionHatches = 0, 0
+
+local function fmtRuntime(s)
+    local h, m, sec = math.floor(s/3600), math.floor((s%3600)/60), math.floor(s%60)
+    if h > 0 then return ("%dh %dm"):format(h, m) end
+    if m > 0 then return ("%dm %ds"):format(m, sec) end
+    return ("%ds"):format(sec)
+end
+
+local function avatar() return ("https://www.roblox.com/headshot-thumbnail/image?userId=%d&width=150&height=150&format=png"):format(lp.UserId) end
+
+local function pingContent()
+    if Webhook.pingMode == "@everyone" then return "@everyone"
+    elseif Webhook.pingMode == "@here" then return "@here"
+    elseif Webhook.pingMode == "User" and Webhook.customPing ~= "" then
+        return "<@" .. Webhook.customPing:gsub("[^%d]", "") .. ">"
     end
+    return nil
+end
+
+local function sendRaw(payload)
+    local req = http_request or request or (syn and syn.request) or (fluxus and fluxus.request)
+    if not req then setStatus(whStatus, whDot, "no HTTP function in executor", C.bad); return end
     local ok = pcall(function()
-        req({
-            Url = Webhook.url, Method = "POST",
+        req({ Url = Webhook.url, Method = "POST",
             Headers = { ["Content-Type"] = "application/json" },
-            Body = HS:JSONEncode(payload),
-        })
+            Body = HS:JSONEncode(payload) })
     end)
     if ok then setStatus(whStatus, whDot, "sent · " .. os.date("%H:%M:%S"), C.good)
     else setStatus(whStatus, whDot, "send error", C.bad) end
 end
 
-EggHatchResult.OnClientEvent:Connect(function(data)
-    if not Webhook.enabled then return end
-    if type(data) ~= "table" or not data.Pets then return end
+local function buildPayload(pet, eggName, coins)
+    sessionPets = sessionPets + 1
+    local rarity = pet.Rarity or "Unknown"
+    local tier = pet.Tier or "Normal"
+    local color = RARITY_COLOR[rarity] or 0x7E57C2
+    local prefix = TIER_PREFIX[tier] or ""
 
-    local fields = {}
-    for _, pet in ipairs(data.Pets) do
-        local notable = (not pet.AutoDeleted) or pet.Tier ~= "Normal"
-                     or pet.Rarity == "Secret" or pet.Rarity == "Mythic" or pet.Rarity == "Legendary"
-        if notable then
-            table.insert(fields, {
-                name = ("%s%s"):format(pet.Tier ~= "Normal" and (pet.Tier .. " ") or "", pet.Name or "?"),
-                value = ("`%s` · 1 in %s · %s power"):format(
-                    pet.Rarity or "?", tostring(pet.OneIn or "?"), tostring(pet.Power or "?")
-                ),
-                inline = false,
-            })
-        end
-    end
-    if #fields == 0 then return end
+    local desc = ("**%s** hatched %s**%s** · `1 in %s`"):format(
+        lp.DisplayName or lp.Name, prefix, pet.Name or "?", tostring(pet.OneIn or "?"))
+    if pet.AutoDeleted then desc = desc .. "\n⚠️ *Auto-deleted*" end
 
-    local payload = {
-        username = "Tap Sim REBORN",
-        content = Webhook.ping ~= "" and Webhook.ping or nil,
+    local fields = {
+        { name = "🐾 Pet",     value = pet.Name or "?",   inline = true },
+        { name = "💎 Rarity",  value = rarity,            inline = true },
+        { name = "🏷️ Tier",    value = tier,              inline = true },
+        { name = "🎲 Chance",  value = "1 in " .. tostring(pet.OneIn or "?"), inline = true },
+        { name = "⚡ Power",   value = tostring(pet.Power or "?"), inline = true },
+        { name = "🥚 Egg",     value = eggName or "?",    inline = true },
+        { name = "💰 Coins",   value = tostring(coins or "?"), inline = true },
+        { name = "📈 Session", value = ("%d hatched · %d hits"):format(sessionPets, sessionHatches), inline = true },
+        { name = "⏱️ Runtime", value = fmtRuntime(os.clock() - scriptStart), inline = true },
+    }
+    return {
+        username = "Pet Tracker", avatar_url = avatar(),
+        content = pingContent(),
         allowed_mentions = { parse = { "everyone", "users" } },
         embeds = {{
-            title = ("Hatched from %s Egg"):format(data.Egg or "?"),
-            description = ("Rolls: **%d**"):format(data.Rolls or 1),
-            color = 9127167,
-            fields = fields,
-            footer = { text = ("%s · %s"):format(lp.Name, os.date("%H:%M:%S")) },
+            title = ("%s %s HATCHED!"):format(RARITY_EMOJI[rarity] or "💜", rarity:upper()),
+            description = desc, color = color, fields = fields,
+            footer = { text = ("%s · aka %s"):format(lp.Name, lp.DisplayName or lp.Name), icon_url = avatar() },
+            timestamp = DateTime.now():ToIsoDate(),
         }},
     }
-    sendWebhook(payload)
+end
+
+_G.__tsrSendTest = function()
+    if Webhook.url == "" then setStatus(whStatus, whDot, "no webhook URL set", C.bad); return end
+    local fakePet = { Name = "Test Pet", Rarity = "Legendary", Tier = "Golden", OneIn = 999, Power = 123456, AutoDeleted = false }
+    sendRaw(buildPayload(fakePet, "Test Egg", 123456789))
+end
+
+EggHatchResult.OnClientEvent:Connect(function(data)
+    if not Webhook.enabled or Webhook.url == "" then return end
+    if type(data) ~= "table" or not data.Pets then return end
+    sessionHatches = sessionHatches + 1
+    for _, pet in ipairs(data.Pets) do
+        local rOk = Webhook.rarities[pet.Rarity or ""] == true
+        local tOk = Webhook.tiers[pet.Tier or ""] == true
+        if rOk or tOk then
+            sendRaw(buildPayload(pet, data.Egg, data.Coins))
+        end
+    end
 end)
 
-warn("[TSReborn] v5 loaded")
+warn("[TSReborn] v6 loaded")
