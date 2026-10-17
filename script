@@ -1,5 +1,5 @@
 -- ============================================
--- Tap Simulator REBORN — v9
+-- Tap Simulator REBORN — v10
 -- ============================================
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
@@ -46,6 +46,90 @@ local C = {
     tGolden=Color3.fromRGB(255,215,0), tDiamond=Color3.fromRGB(130,220,255),
     tRainbow=Color3.fromRGB(255,120,200),
 }
+
+-- Config file system
+local CONFIG_DIR = "TSReborn"
+local CONFIG_SUB = CONFIG_DIR .. "/configs"
+local AUTOLOAD_FILE = CONFIG_DIR .. "/autoload.txt"
+if makefolder then pcall(makefolder, CONFIG_DIR); pcall(makefolder, CONFIG_SUB) end
+local function listConfigs()
+    local out = {}
+    if listfiles and isfolder and isfolder(CONFIG_SUB) then
+        for _, path in ipairs(listfiles(CONFIG_SUB)) do
+            local name = path:match("([^/\\]+)%.json$")
+            if name then table.insert(out, name) end
+        end
+    end
+    table.sort(out)
+    return out
+end
+
+local UISetters = {}
+local refreshCheckRows = {}  -- tier/rarity/enchant refresh callbacks
+
+local function snapshot()
+    return {
+        AutoKnock = { enabled = AutoKnock.enabled },
+        AutoEnchant = { enabled = AutoEnchant.enabled, slot = AutoEnchant.slot, wanted = AutoEnchant.wanted },
+        AutoBoss = { enabled = AutoBoss.enabled },
+        AntiAFK = { enabled = AntiAFK.enabled },
+        Webhook = {
+            enabled = Webhook.enabled, url = Webhook.url,
+            pingMode = Webhook.pingMode, customPing = Webhook.customPing,
+            rarities = Webhook.rarities, tiers = Webhook.tiers,
+        },
+    }
+end
+
+local function applyConfig(cfg)
+    if type(cfg) ~= "table" then return end
+    local function set(key, val) if UISetters[key] then UISetters[key](val) end end
+    if cfg.AutoKnock then set("AutoKnock.enabled", cfg.AutoKnock.enabled) end
+    if cfg.AutoBoss then set("AutoBoss.enabled", cfg.AutoBoss.enabled) end
+    if cfg.AntiAFK then set("AntiAFK.enabled", cfg.AntiAFK.enabled) end
+    if cfg.AutoEnchant then
+        set("AutoEnchant.enabled", cfg.AutoEnchant.enabled)
+        set("AutoEnchant.slot", cfg.AutoEnchant.slot or 1)
+        AutoEnchant.wanted = cfg.AutoEnchant.wanted or {}
+    end
+    if cfg.Webhook then
+        set("Webhook.enabled", cfg.Webhook.enabled)
+        set("Webhook.url", cfg.Webhook.url or "")
+        set("Webhook.pingMode", cfg.Webhook.pingMode or "None")
+        set("Webhook.customPing", cfg.Webhook.customPing or "")
+        Webhook.rarities = cfg.Webhook.rarities or Webhook.rarities
+        Webhook.tiers = cfg.Webhook.tiers or Webhook.tiers
+    end
+    for _, fn in ipairs(refreshCheckRows) do fn() end
+end
+
+local function saveConfig(name)
+    if not writefile then return false end
+    writefile(CONFIG_SUB .. "/" .. name .. ".json", HS:JSONEncode(snapshot()))
+    return true
+end
+local function loadConfigFile(name)
+    if not readfile or not isfile then return false end
+    local path = CONFIG_SUB .. "/" .. name .. ".json"
+    if not isfile(path) then return false end
+    local ok, data = pcall(function() return HS:JSONDecode(readfile(path)) end)
+    if not ok then return false end
+    applyConfig(data); return true
+end
+local function deleteConfigFile(name)
+    if delfile and isfile then
+        local p = CONFIG_SUB .. "/" .. name .. ".json"
+        if isfile(p) then delfile(p); return true end
+    end
+    return false
+end
+local function setAutoload(name)
+    if writefile then writefile(AUTOLOAD_FILE, name or "") end
+end
+local function getAutoload()
+    if isfile and isfile(AUTOLOAD_FILE) then return readfile(AUTOLOAD_FILE) end
+    return ""
+end
 
 pcall(function() lp.PlayerGui:FindFirstChild("TSRebornMenu"):Destroy() end)
 local gui = Instance.new("ScreenGui")
@@ -95,7 +179,7 @@ title.Font = Enum.Font.GothamBold; title.TextSize = 16; title.TextXAlignment = E
 local subtitle = Instance.new("TextLabel", header)
 subtitle.BackgroundTransparency = 1; subtitle.Position = UDim2.new(0, 62, 0, 32)
 subtitle.Size = UDim2.new(1, -160, 0, 16)
-subtitle.Text = "Premium Script Hub · v9"
+subtitle.Text = "Premium Script Hub · v10"
 subtitle.TextColor3 = C.muted; subtitle.Font = Enum.Font.Gotham; subtitle.TextSize = 11
 subtitle.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -200,7 +284,7 @@ local function card(parent)
     return c
 end
 
-local function toggleRow(parent, label, desc, initial, callback)
+local function toggleRow(parent, label, desc, initial, callback, setterKey)
     local f = Instance.new("Frame", parent); f.BackgroundTransparency = 1; f.Size = UDim2.new(1, 0, 0, 44)
     local lab = Instance.new("TextLabel", f); lab.BackgroundTransparency = 1
     lab.Size = UDim2.new(1, -60, 0, 18); lab.Text = label; lab.TextColor3 = C.text
@@ -222,12 +306,15 @@ local function toggleRow(parent, label, desc, initial, callback)
     knob.BackgroundColor3 = Color3.new(1,1,1); knob.BorderSizePixel = 0
     Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
     local state = initial
-    track.MouseButton1Click:Connect(function()
-        state = not state
+    local function setVisual(v)
+        state = v and true or false
         tween(track, { BackgroundColor3 = state and C.accent1 or C.cardAlt }, 0.18)
         tween(knob, { Position = state and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9) }, 0.18)
-        callback(state)
+    end
+    track.MouseButton1Click:Connect(function()
+        setVisual(not state); callback(state)
     end)
+    if setterKey then UISetters[setterKey] = function(v) setVisual(v); callback(state) end end
 end
 
 local function tinyLabel(parent, text)
@@ -236,7 +323,7 @@ local function tinyLabel(parent, text)
     l.Font = Enum.Font.GothamBold; l.TextSize = 10; l.TextXAlignment = Enum.TextXAlignment.Left
 end
 
-local function makeTB(parent, placeholder, initial, onChange)
+local function makeTB(parent, placeholder, initial, onChange, setterKey)
     local f = Instance.new("Frame", parent)
     f.Size = UDim2.new(1, 0, 0, 34); f.BackgroundColor3 = C.cardAlt; f.BorderSizePixel = 0
     f.ClipsDescendants = true
@@ -249,6 +336,7 @@ local function makeTB(parent, placeholder, initial, onChange)
     tb.ClearTextOnFocus = false; tb.TextXAlignment = Enum.TextXAlignment.Left
     tb.TextTruncate = Enum.TextTruncate.AtEnd
     tb.FocusLost:Connect(function() onChange(tb.Text) end)
+    if setterKey then UISetters[setterKey] = function(v) tb.Text = v or ""; onChange(tb.Text) end end
     return tb
 end
 
@@ -267,7 +355,7 @@ local function primaryBtn(parent, label, onClick)
     return b
 end
 
-local function segmented(parent, options, initial, onSelect)
+local function segmented(parent, options, initial, onSelect, setterKey)
     local row = Instance.new("Frame", parent)
     row.BackgroundTransparency = 1; row.Size = UDim2.new(1, 0, 0, 32)
     local l = Instance.new("UIListLayout", row); l.FillDirection = Enum.FillDirection.Horizontal; l.Padding = UDim.new(0, 6)
@@ -287,9 +375,10 @@ local function segmented(parent, options, initial, onSelect)
         b.MouseButton1Click:Connect(function() onSelect(opt); refresh(opt) end)
     end
     refresh(initial)
+    if setterKey then UISetters[setterKey] = function(v) if buttons[v] then onSelect(v); refresh(v) end end end
 end
 
-local function slotRow(parent, currentSlot, onSelect)
+local function slotRow(parent, currentSlot, onSelect, setterKey)
     local row = Instance.new("Frame", parent); row.BackgroundTransparency = 1; row.Size = UDim2.new(1, 0, 0, 36)
     local l = Instance.new("UIListLayout", row); l.FillDirection = Enum.FillDirection.Horizontal; l.Padding = UDim.new(0, 8)
     local buttons = {}
@@ -308,6 +397,7 @@ local function slotRow(parent, currentSlot, onSelect)
         b.MouseButton1Click:Connect(function() onSelect(i); refresh(i) end)
     end
     refresh(currentSlot)
+    if setterKey then UISetters[setterKey] = function(v) if buttons[v] then onSelect(v); refresh(v) end end end
 end
 
 local function dropdown(parent, labelText, tierDot)
@@ -375,6 +465,7 @@ local function checkRow(parent, name, dotColor, getState, setState)
     row.MouseLeave:Connect(function() tween(row, { BackgroundColor3 = C.card }, 0.1) end)
     row.MouseButton1Click:Connect(function() setState(not getState()); refresh() end)
     refresh()
+    table.insert(refreshCheckRows, refresh)
 end
 
 local function statusBar(parent)
@@ -407,23 +498,24 @@ local function pressF()
     end
 end
 
+-- Halloween page
 local pageH = makePage("Halloween")
 sectionHeader(pageH, "AUTO TRICK-OR-TREAT")
 local hc = card(pageH)
-toggleRow(hc, "Enabled", "Travels, claims all 11 houses, waits 30m", false, function(v) AutoKnock.enabled = v end)
+toggleRow(hc, "Enabled", "Travels, claims all 11 houses, waits 30m", false, function(v) AutoKnock.enabled = v end, "AutoKnock.enabled")
 local knockStatus, knockDot = statusBar(pageH)
-
 sectionHeader(pageH, "HALLOWEEN BOSS")
 local bossCard = card(pageH)
-toggleRow(bossCard, "Auto-defeat", "TPs and spam-taps when boss spawns", false, function(v) AutoBoss.enabled = v end)
+toggleRow(bossCard, "Auto-defeat", "TPs and spam-taps when boss spawns", false, function(v) AutoBoss.enabled = v end, "AutoBoss.enabled")
 local bossStatus, bossDot = statusBar(pageH)
 
+-- Enchanting
 local pageE = makePage("Enchanting")
 sectionHeader(pageE, "AUTO-ENCHANT")
 local ec = card(pageE)
-toggleRow(ec, "Enabled", "Rerolls until a wanted enchant hits", false, function(v) AutoEnchant.enabled = v end)
+toggleRow(ec, "Enabled", "Rerolls until a wanted enchant hits", false, function(v) AutoEnchant.enabled = v end, "AutoEnchant.enabled")
 tinyLabel(ec, "SLOT")
-slotRow(ec, AutoEnchant.slot, function(s) AutoEnchant.slot = s end)
+slotRow(ec, AutoEnchant.slot, function(s) AutoEnchant.slot = s end, "AutoEnchant.slot")
 local encStatus, encDot = statusBar(pageE)
 sectionHeader(pageE, "WANTED ENCHANTS")
 local wc = card(pageE)
@@ -439,42 +531,121 @@ for _, n in ipairs(MYTHIC) do checkRow(mythBody, n, C.rMythical, function() retu
 local secBody = dropdown(wc, "Secret", C.rSecret)
 for _, n in ipairs(SECRET) do checkRow(secBody, n, C.rSecret, function() return AutoEnchant.wanted[n] end, function(v) AutoEnchant.wanted[n] = v or nil end) end
 
+-- Misc
 local pageM = makePage("Misc")
 sectionHeader(pageM, "ANTI-AFK")
 local afkCard = card(pageM)
-toggleRow(afkCard, "Enabled", "Prevents the 20-minute idle kick", false, function(v) AntiAFK.enabled = v end)
+toggleRow(afkCard, "Enabled", "Prevents the 20-minute idle kick", false, function(v) AntiAFK.enabled = v end, "AntiAFK.enabled")
 sectionHeader(pageM, "DISCORD WEBHOOK")
 local whCard = card(pageM)
-toggleRow(whCard, "Enabled", "Posts hatches to Discord", false, function(v) Webhook.enabled = v end)
+toggleRow(whCard, "Enabled", "Posts hatches to Discord", false, function(v) Webhook.enabled = v end, "Webhook.enabled")
 tinyLabel(whCard, "WEBHOOK URL")
-makeTB(whCard, "https://discord.com/api/webhooks/...", "", function(t) Webhook.url = t end)
+makeTB(whCard, "https://discord.com/api/webhooks/...", "", function(t) Webhook.url = t end, "Webhook.url")
 tinyLabel(whCard, "PING MODE")
-segmented(whCard, { "None", "@everyone", "@here", "User" }, "None", function(opt) Webhook.pingMode = opt end)
-tinyLabel(whCard, "CUSTOM USER ID (only used when Ping Mode = User)")
-makeTB(whCard, "123456789012345678", "", function(t) Webhook.customPing = t end)
+segmented(whCard, { "None", "@everyone", "@here", "User" }, "None", function(opt) Webhook.pingMode = opt end, "Webhook.pingMode")
+tinyLabel(whCard, "CUSTOM USER ID")
+makeTB(whCard, "123456789012345678", "", function(t) Webhook.customPing = t end, "Webhook.customPing")
 local whStatus, whDot = statusBar(pageM)
-sectionHeader(pageM, "FILTERS — ONLY SENDS WHEN RARITY AND TIER BOTH MATCH")
+sectionHeader(pageM, "FILTERS — RARITY AND TIER MUST BOTH MATCH")
 local filterCard = card(pageM)
 local rarityBody = dropdown(filterCard, "Rarities", C.accent1)
-local rarityOrder = { "Common","Rare","Epic","Legendary","Mythical","Secret" }
-local rarityColors = { Common=C.rCommon, Rare=C.rRare, Epic=C.rEpic, Legendary=C.rLegendary, Mythical=C.rMythical, Secret=C.rSecret }
-for _, r in ipairs(rarityOrder) do
-    checkRow(rarityBody, r, rarityColors[r], function() return Webhook.rarities[r] end, function(v) Webhook.rarities[r] = v end)
+for _, r in ipairs({ "Common","Rare","Epic","Legendary","Mythical","Secret" }) do
+    local rc = ({Common=C.rCommon,Rare=C.rRare,Epic=C.rEpic,Legendary=C.rLegendary,Mythical=C.rMythical,Secret=C.rSecret})[r]
+    checkRow(rarityBody, r, rc, function() return Webhook.rarities[r] end, function(v) Webhook.rarities[r] = v end)
 end
 local tierBody = dropdown(filterCard, "Tiers", C.tGolden)
-local tierOrder = { "Normal","Golden","Diamond","Rainbow" }
-local tierColors = { Normal=C.muted, Golden=C.tGolden, Diamond=C.tDiamond, Rainbow=C.tRainbow }
-for _, t in ipairs(tierOrder) do
-    checkRow(tierBody, t, tierColors[t], function() return Webhook.tiers[t] end, function(v) Webhook.tiers[t] = v end)
+for _, t in ipairs({ "Normal","Golden","Diamond","Rainbow" }) do
+    local tc = ({Normal=C.muted,Golden=C.tGolden,Diamond=C.tDiamond,Rainbow=C.tRainbow})[t]
+    checkRow(tierBody, t, tc, function() return Webhook.tiers[t] end, function(v) Webhook.tiers[t] = v end)
 end
 primaryBtn(filterCard, "SEND TEST WEBHOOK", function() _G.__tsrSendTest() end)
+
+-- Config page
+local pageC = makePage("Config")
+sectionHeader(pageC, "CONFIG MANAGER")
+local cfgCard = card(pageC)
+local currentConfigName = ""
+tinyLabel(cfgCard, "CONFIG NAME")
+makeTB(cfgCard, "my-config", "", function(t) currentConfigName = t:gsub("[^%w_-]", "") end)
+
+local cfgStatus, cfgDot = statusBar(pageC)
+local function cfgSay(text, color) setStatus(cfgStatus, cfgDot, text, color) end
+
+local btnRow = Instance.new("Frame", cfgCard)
+btnRow.BackgroundTransparency = 1; btnRow.Size = UDim2.new(1, 0, 0, 34)
+local brl = Instance.new("UIListLayout", btnRow); brl.FillDirection = Enum.FillDirection.Horizontal; brl.Padding = UDim.new(0, 6)
+local function miniBtn(parent, text, color, onClick)
+    local b = Instance.new("TextButton", parent)
+    b.Size = UDim2.new(1/3, -4, 1, 0); b.BackgroundColor3 = color
+    b.Text = text; b.TextColor3 = Color3.new(1,1,1)
+    b.Font = Enum.Font.GothamBold; b.TextSize = 11; b.BorderSizePixel = 0; b.AutoButtonColor = false
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    b.MouseButton1Click:Connect(onClick)
+    return b
+end
+miniBtn(btnRow, "SAVE", C.good, function()
+    if currentConfigName == "" then cfgSay("name required", C.bad); return end
+    local path = CONFIG_SUB .. "/" .. currentConfigName .. ".json"
+    if isfile and isfile(path) then cfgSay("exists · use OVERRIDE", C.warn); return end
+    if saveConfig(currentConfigName) then cfgSay("saved: " .. currentConfigName, C.good)
+    else cfgSay("save failed", C.bad) end
+end)
+miniBtn(btnRow, "OVERRIDE", C.warn, function()
+    if currentConfigName == "" then cfgSay("name required", C.bad); return end
+    if saveConfig(currentConfigName) then cfgSay("overridden: " .. currentConfigName, C.good)
+    else cfgSay("save failed", C.bad) end
+end)
+miniBtn(btnRow, "DELETE", C.bad, function()
+    if currentConfigName == "" then cfgSay("name required", C.bad); return end
+    if deleteConfigFile(currentConfigName) then cfgSay("deleted: " .. currentConfigName, C.good)
+    else cfgSay("not found", C.bad) end
+end)
+
+sectionHeader(pageC, "SAVED CONFIGS")
+local listCard = card(pageC)
+local listBody = Instance.new("Frame", listCard)
+listBody.BackgroundTransparency = 1; listBody.Size = UDim2.new(1, 0, 0, 0)
+listBody.AutomaticSize = Enum.AutomaticSize.Y
+local lbl = Instance.new("UIListLayout", listBody); lbl.Padding = UDim.new(0, 4)
+
+local function refreshList()
+    for _, c in ipairs(listBody:GetChildren()) do if not c:IsA("UIListLayout") then c:Destroy() end end
+    for _, name in ipairs(listConfigs()) do
+        local row = Instance.new("Frame", listBody)
+        row.BackgroundColor3 = C.cardAlt; row.BorderSizePixel = 0
+        row.Size = UDim2.new(1, 0, 0, 32)
+        Instance.new("UICorner", row).CornerRadius = UDim.new(0, 6)
+        local l = Instance.new("TextLabel", row)
+        l.BackgroundTransparency = 1; l.Position = UDim2.new(0, 12, 0, 0); l.Size = UDim2.new(1, -100, 1, 0)
+        l.Text = name; l.TextColor3 = C.text; l.Font = Enum.Font.GothamMedium; l.TextSize = 12
+        l.TextXAlignment = Enum.TextXAlignment.Left
+        local loadBtn = Instance.new("TextButton", row)
+        loadBtn.Size = UDim2.new(0, 84, 0, 24); loadBtn.Position = UDim2.new(1, -92, 0.5, -12)
+        loadBtn.BackgroundColor3 = C.accent1; loadBtn.Text = "LOAD"
+        loadBtn.TextColor3 = Color3.new(1,1,1); loadBtn.Font = Enum.Font.GothamBold; loadBtn.TextSize = 11
+        loadBtn.BorderSizePixel = 0; loadBtn.AutoButtonColor = false
+        Instance.new("UICorner", loadBtn).CornerRadius = UDim.new(0, 5)
+        loadBtn.MouseButton1Click:Connect(function()
+            if loadConfigFile(name) then cfgSay("loaded: " .. name, C.good)
+            else cfgSay("load failed", C.bad) end
+        end)
+    end
+end
+refreshList()
+primaryBtn(listCard, "REFRESH LIST", refreshList)
+
+sectionHeader(pageC, "AUTO-LOAD ON STARTUP")
+local autoCard = card(pageC)
+tinyLabel(autoCard, "CONFIG NAME TO AUTO-LOAD (blank = off)")
+local autoName = getAutoload() or ""
+makeTB(autoCard, "my-config", autoName, function(t) setAutoload(t) end)
 
 local pageI = makePage("Info")
 sectionHeader(pageI, "ABOUT")
 local ic = card(pageI)
 local info = Instance.new("TextLabel", ic); info.BackgroundTransparency = 1
 info.Size = UDim2.new(1, 0, 0, 180)
-info.Text = "Tap Simulator REBORN Hub\n\n• Auto Trick-or-Treat\n• Auto Halloween Boss\n• Auto-Enchant\n• Anti-AFK\n• Discord hatch webhook with filters\n\nDrag the title bar to move."
+info.Text = "Tap Simulator REBORN Hub\n\n• Auto Trick-or-Treat\n• Auto Halloween Boss\n• Auto-Enchant\n• Anti-AFK\n• Discord hatch webhook with filters\n• Config save/load\n\nDrag the title bar to move."
 info.TextColor3 = C.textDim; info.Font = Enum.Font.Gotham; info.TextSize = 12
 info.TextXAlignment = Enum.TextXAlignment.Left; info.TextYAlignment = Enum.TextYAlignment.Top
 info.TextWrapped = true
@@ -482,6 +653,7 @@ info.TextWrapped = true
 makeTab("Halloween", "H")
 makeTab("Enchanting", "E")
 makeTab("Misc", "M")
+makeTab("Config", "C")
 makeTab("Info", "i")
 switchTo("Halloween")
 
@@ -556,7 +728,7 @@ task.spawn(function()
                         for _, hs in ipairs(remaining) do
                             if AutoKnock.enabled then
                                 attempts[hs.id] = (attempts[hs.id] or 0) + 1
-                                setStatus(knockStatus, knockDot, ("claiming %s (try %d)"):format(hs.id, attempts[hs.id]), C.accent2)
+                                setStatus(knockStatus, knockDot, ("claiming %s"):format(hs.id), C.accent2)
                                 tpTo(hs.cf); task.wait(DWELL)
                                 local ok, res = pcall(function() return Knock:InvokeServer(hs.id) end)
                                 if ok and res ~= false and res ~= nil then claimed[hs.id] = true end
@@ -879,4 +1051,15 @@ EggHatchResult.OnClientEvent:Connect(function(data)
     end
 end)
 
-warn("[TSReborn] v9 loaded")
+-- Auto-load config on startup
+task.spawn(function()
+    task.wait(0.5)
+    local name = getAutoload()
+    if name and name ~= "" then
+        if loadConfigFile(name) then
+            warn("[TSReborn] auto-loaded config: " .. name)
+        end
+    end
+end)
+
+warn("[TSReborn] v10 loaded")
