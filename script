@@ -664,8 +664,13 @@ local function fmtRuntime(s)
 end
 
 local avatarUrl = nil
-pcall(function()
-    avatarUrl = Players:GetUserThumbnailAsync(lp.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+task.spawn(function()
+    local ok, data = pcall(function()
+        return HS:JSONDecode(game:HttpGet(("https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=%d&size=150x150&format=Png"):format(lp.UserId)))
+    end)
+    if ok and data and data.data and data.data[1] then
+        avatarUrl = data.data[1].imageUrl
+    end
 end)
 
 local function pingContent()
@@ -680,13 +685,19 @@ end
 local function sendRaw(payload)
     local req = http_request or request or (syn and syn.request) or (fluxus and fluxus.request)
     if not req then setStatus(whStatus, whDot, "no HTTP function in executor", C.bad); return end
-    local ok = pcall(function()
-        req({ Url = Webhook.url, Method = "POST",
+    local ok, res = pcall(function()
+        return req({ Url = Webhook.url, Method = "POST",
             Headers = { ["Content-Type"] = "application/json" },
             Body = HS:JSONEncode(payload) })
     end)
-    if ok then setStatus(whStatus, whDot, "sent · " .. os.date("%H:%M:%S"), C.good)
-    else setStatus(whStatus, whDot, "send error", C.bad) end
+    if not ok then setStatus(whStatus, whDot, "send error", C.bad); return end
+    local code = res and (res.StatusCode or res.Status or 0)
+    if type(code) == "number" and code >= 200 and code < 300 then
+        setStatus(whStatus, whDot, "sent · " .. os.date("%H:%M:%S"), C.good)
+    else
+        setStatus(whStatus, whDot, "HTTP " .. tostring(code), C.bad)
+        warn("[Webhook] body:", res and res.Body)
+    end
 end
 
 local function buildPayload(pet, eggName, coins)
