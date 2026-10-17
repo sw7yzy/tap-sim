@@ -642,9 +642,19 @@ end)
 local RARITY_COLOR = { Common=0x9E9E9E, Rare=0x4FC3F7, Epic=0xAB47BC, Legendary=0xFFB300, Mythical=0xE91E63, Secret=0xF44336 }
 local RARITY_EMOJI = { Common="⚪", Rare="🔵", Epic="🟣", Legendary="🟡", Mythical="🩷", Secret="⭐" }
 local TIER_PREFIX  = { Normal="", Golden="✨ ", Diamond="💎 ", Rainbow="🌈 " }
+local SUFFIXES = { "","K","M","B","T","Qa","Qi","Sx","Sp","Oc","No","Dc","UDc","DDc","TDc","QaDc","QiDc","SxDc","SpDc","OcDc","Vg","UVg","DVg","TVg","QaVg","QiVg","SxVg","SpVg","OcVg","NVg","Tg" }
 
 local scriptStart = os.clock()
-local sessionPets, sessionHatches = 0, 0
+local sessionHatches = 0
+
+local function fmtNum(n)
+    n = tonumber(n) or 0
+    if n < 1000 then return tostring(math.floor(n)) end
+    local tier = math.floor(math.log(n, 1000))
+    tier = math.min(tier, #SUFFIXES - 1)
+    local scaled = n / (1000 ^ tier)
+    return string.format("%.2f%s", scaled, SUFFIXES[tier + 1])
+end
 
 local function fmtRuntime(s)
     local h, m, sec = math.floor(s/3600), math.floor((s%3600)/60), math.floor(s%60)
@@ -653,7 +663,10 @@ local function fmtRuntime(s)
     return ("%ds"):format(sec)
 end
 
-local function avatar() return ("https://www.roblox.com/headshot-thumbnail/image?userId=%d&width=150&height=150&format=png"):format(lp.UserId) end
+local avatarUrl = nil
+pcall(function()
+    avatarUrl = Players:GetUserThumbnailAsync(lp.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+end)
 
 local function pingContent()
     if Webhook.pingMode == "@everyone" then return "@everyone"
@@ -677,7 +690,6 @@ local function sendRaw(payload)
 end
 
 local function buildPayload(pet, eggName, coins)
-    sessionPets = sessionPets + 1
     local rarity = pet.Rarity or "Unknown"
     local tier = pet.Tier or "Normal"
     local color = RARITY_COLOR[rarity] or 0x7E57C2
@@ -691,21 +703,21 @@ local function buildPayload(pet, eggName, coins)
         { name = "🐾 Pet",     value = pet.Name or "?",   inline = true },
         { name = "💎 Rarity",  value = rarity,            inline = true },
         { name = "🏷️ Tier",    value = tier,              inline = true },
-        { name = "🎲 Chance",  value = "1 in " .. tostring(pet.OneIn or "?"), inline = true },
-        { name = "⚡ Power",   value = tostring(pet.Power or "?"), inline = true },
+        { name = "🎲 Chance",  value = "1 in " .. fmtNum(pet.OneIn or 0), inline = true },
+        { name = "⚡ Power",   value = fmtNum(pet.Power or 0), inline = true },
         { name = "🥚 Egg",     value = eggName or "?",    inline = true },
-        { name = "💰 Coins",   value = tostring(coins or "?"), inline = true },
-        { name = "📈 Session", value = ("%d hatched · %d hits"):format(sessionPets, sessionHatches), inline = true },
+        { name = "💰 Coins",   value = fmtNum(coins or 0), inline = true },
+        { name = "📈 Session", value = sessionHatches .. " hatches", inline = true },
         { name = "⏱️ Runtime", value = fmtRuntime(os.clock() - scriptStart), inline = true },
     }
     return {
-        username = "Pet Tracker", avatar_url = avatar(),
+        username = "Pet Tracker", avatar_url = avatarUrl,
         content = pingContent(),
         allowed_mentions = { parse = { "everyone", "users" } },
         embeds = {{
             title = ("%s %s HATCHED!"):format(RARITY_EMOJI[rarity] or "💜", rarity:upper()),
             description = desc, color = color, fields = fields,
-            footer = { text = ("%s · aka %s"):format(lp.Name, lp.DisplayName or lp.Name), icon_url = avatar() },
+            footer = { text = ("%s · aka %s"):format(lp.Name, lp.DisplayName or lp.Name), icon_url = avatarUrl },
             timestamp = DateTime.now():ToIsoDate(),
         }},
     }
@@ -714,8 +726,21 @@ end
 _G.__tsrSendTest = function()
     if Webhook.url == "" then setStatus(whStatus, whDot, "no webhook URL set", C.bad); return end
     local fakePet = { Name = "Test Pet", Rarity = "Legendary", Tier = "Golden", OneIn = 999, Power = 123456, AutoDeleted = false }
-    sendRaw(buildPayload(fakePet, "Test Egg", 123456789))
+    sendRaw(buildPayload(fakePet, "Test Egg", 9.65e22))
 end
+
+EggHatchResult.OnClientEvent:Connect(function(data)
+    if not Webhook.enabled or Webhook.url == "" then return end
+    if type(data) ~= "table" or not data.Pets then return end
+    sessionHatches = sessionHatches + 1
+    for _, pet in ipairs(data.Pets) do
+        local rOk = Webhook.rarities[pet.Rarity or ""] == true
+        local tOk = Webhook.tiers[pet.Tier or ""] == true
+        if rOk or tOk then
+            sendRaw(buildPayload(pet, data.Egg, data.Coins))
+        end
+    end
+end)
 
 EggHatchResult.OnClientEvent:Connect(function(data)
     if not Webhook.enabled or Webhook.url == "" then return end
