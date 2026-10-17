@@ -1,5 +1,5 @@
 -- ============================================
--- Tap Simulator REBORN — v7
+-- Tap Simulator REBORN — v8
 -- ============================================
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
@@ -20,6 +20,7 @@ local AutoEnchant = { enabled = false, slot = 1, wanted = {} }
 local AntiAFK = { enabled = false }
 local Webhook = {
     enabled = false, url = "", pingMode = "None", customPing = "",
+    ignoreAutoDeleted = true,
     rarities = { Common=false, Rare=false, Epic=true, Legendary=true, Mythical=true, Secret=true },
     tiers    = { Normal=false, Golden=true, Diamond=true, Rainbow=true },
 }
@@ -93,7 +94,7 @@ title.Font = Enum.Font.GothamBold; title.TextSize = 16; title.TextXAlignment = E
 local subtitle = Instance.new("TextLabel", header)
 subtitle.BackgroundTransparency = 1; subtitle.Position = UDim2.new(0, 62, 0, 32)
 subtitle.Size = UDim2.new(1, -160, 0, 16)
-subtitle.Text = "Premium Script Hub · v7"
+subtitle.Text = "Premium Script Hub · v8"
 subtitle.TextColor3 = C.muted; subtitle.Font = Enum.Font.Gotham; subtitle.TextSize = 11
 subtitle.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -395,7 +396,6 @@ local function setStatus(label, dot, text, color)
     dot.BackgroundColor3 = color or C.muted
 end
 
--- PAGES
 local pageH = makePage("Halloween")
 sectionHeader(pageH, "AUTO TRICK-OR-TREAT")
 local hc = card(pageH)
@@ -442,6 +442,7 @@ local whStatus, whDot = statusBar(pageM)
 
 sectionHeader(pageM, "FILTERS — WHAT TO SEND")
 local filterCard = card(pageM)
+toggleRow(filterCard, "Ignore auto-deleted", "Skip pets you auto-trashed, unless tier is special", true, function(v) Webhook.ignoreAutoDeleted = v end)
 local rarityBody = dropdown(filterCard, "Rarities", C.accent1)
 local rarityOrder = { "Common","Rare","Epic","Legendary","Mythical","Secret" }
 local rarityColors = { Common=C.rCommon, Rare=C.rRare, Epic=C.rEpic, Legendary=C.rLegendary, Mythical=C.rMythical, Secret=C.rSecret }
@@ -797,10 +798,20 @@ EggHatchResult.OnClientEvent:Connect(function(data)
     if type(data) ~= "table" or not data.Pets then return end
     sessionEggs = sessionEggs + (data.Rolls or 1)
     for _, pet in ipairs(data.Pets) do
-        if Webhook.rarities[pet.Rarity or ""] or Webhook.tiers[pet.Tier or ""] then
-            send(buildPayload(pet, data.Egg, data.Coins))
+        local rarity = pet.Rarity or ""
+        local tier = pet.Tier or "Normal"
+        local rOk = Webhook.rarities[rarity] or false
+        local tOk = Webhook.tiers[tier] or false
+        local specialTier = tier ~= "Normal" and Webhook.tiers[tier] or false
+
+        if rOk or tOk then
+            if Webhook.ignoreAutoDeleted and pet.AutoDeleted and not specialTier then
+                -- skipped
+            else
+                send(buildPayload(pet, data.Egg, data.Coins))
+            end
         end
     end
 end)
 
-warn("[TSReborn] v7 loaded")
+warn("[TSReborn] v8 loaded")
