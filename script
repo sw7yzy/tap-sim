@@ -1,5 +1,5 @@
 -- ============================================
--- Tap Simulator REBORN — v6
+-- Tap Simulator REBORN — v7
 -- ============================================
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
@@ -11,6 +11,9 @@ local Knock  = RS.RemoteServices.TrickOrTreatService.RF.Knock
 local Travel = RS.RemoteServices.IslandService.RF.Travel
 local Enc    = RS.RemoteServices.EnchantService.RF
 local EggHatchResult = RS.RemoteServices.EggService.RE.EggHatchResult
+
+local OriginalPets = require(RS.Shared.Pets.OriginalPetCatalog)
+local PetVisual = require(RS.Shared.Pets.PetVisualConfig)
 
 local AutoKnock = { enabled = false }
 local AutoEnchant = { enabled = false, slot = 1, wanted = {} }
@@ -90,7 +93,7 @@ title.Font = Enum.Font.GothamBold; title.TextSize = 16; title.TextXAlignment = E
 local subtitle = Instance.new("TextLabel", header)
 subtitle.BackgroundTransparency = 1; subtitle.Position = UDim2.new(0, 62, 0, 32)
 subtitle.Size = UDim2.new(1, -160, 0, 16)
-subtitle.Text = "Premium Script Hub · v6"
+subtitle.Text = "Premium Script Hub · v7"
 subtitle.TextColor3 = C.muted; subtitle.Font = Enum.Font.Gotham; subtitle.TextSize = 11
 subtitle.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -414,19 +417,12 @@ for _, n in ipairs(TIERED) do for _, t in ipairs({ "I","II","III" }) do
     checkRow(commonBody, key, C.textDim, function() return AutoEnchant.wanted[key] end, function(v) AutoEnchant.wanted[key] = v or nil end)
 end end
 local legBody = dropdown(wc, "Legendary", C.rLegendary)
-for _, n in ipairs(LEGENDARY) do
-    checkRow(legBody, n, C.rLegendary, function() return AutoEnchant.wanted[n] end, function(v) AutoEnchant.wanted[n] = v or nil end)
-end
+for _, n in ipairs(LEGENDARY) do checkRow(legBody, n, C.rLegendary, function() return AutoEnchant.wanted[n] end, function(v) AutoEnchant.wanted[n] = v or nil end) end
 local mythBody = dropdown(wc, "Mythic", C.rMythical)
-for _, n in ipairs(MYTHIC) do
-    checkRow(mythBody, n, C.rMythical, function() return AutoEnchant.wanted[n] end, function(v) AutoEnchant.wanted[n] = v or nil end)
-end
+for _, n in ipairs(MYTHIC) do checkRow(mythBody, n, C.rMythical, function() return AutoEnchant.wanted[n] end, function(v) AutoEnchant.wanted[n] = v or nil end) end
 local secBody = dropdown(wc, "Secret", C.rSecret)
-for _, n in ipairs(SECRET) do
-    checkRow(secBody, n, C.rSecret, function() return AutoEnchant.wanted[n] end, function(v) AutoEnchant.wanted[n] = v or nil end)
-end
+for _, n in ipairs(SECRET) do checkRow(secBody, n, C.rSecret, function() return AutoEnchant.wanted[n] end, function(v) AutoEnchant.wanted[n] = v or nil end) end
 
--- MISC PAGE
 local pageM = makePage("Misc")
 
 sectionHeader(pageM, "ANTI-AFK")
@@ -442,7 +438,6 @@ tinyLabel(whCard, "PING MODE")
 segmented(whCard, { "None", "@everyone", "@here", "User" }, "None", function(opt) Webhook.pingMode = opt end)
 tinyLabel(whCard, "CUSTOM USER ID (only used when Ping Mode = User)")
 makeTB(whCard, "123456789012345678", "", function(t) Webhook.customPing = t end)
-
 local whStatus, whDot = statusBar(pageM)
 
 sectionHeader(pageM, "FILTERS — WHAT TO SEND")
@@ -453,23 +448,20 @@ local rarityColors = { Common=C.rCommon, Rare=C.rRare, Epic=C.rEpic, Legendary=C
 for _, r in ipairs(rarityOrder) do
     checkRow(rarityBody, r, rarityColors[r], function() return Webhook.rarities[r] end, function(v) Webhook.rarities[r] = v end)
 end
-local tierBody = dropdown(filterCard, "Tiers (always sends if checked)", C.tGolden)
+local tierBody = dropdown(filterCard, "Tiers", C.tGolden)
 local tierOrder = { "Normal","Golden","Diamond","Rainbow" }
 local tierColors = { Normal=C.muted, Golden=C.tGolden, Diamond=C.tDiamond, Rainbow=C.tRainbow }
 for _, t in ipairs(tierOrder) do
     checkRow(tierBody, t, tierColors[t], function() return Webhook.tiers[t] end, function(v) Webhook.tiers[t] = v end)
 end
-
-primaryBtn(filterCard, "SEND TEST WEBHOOK", function()
-    _G.__tsrSendTest()
-end)
+primaryBtn(filterCard, "SEND TEST WEBHOOK", function() _G.__tsrSendTest() end)
 
 local pageI = makePage("Info")
 sectionHeader(pageI, "ABOUT")
 local ic = card(pageI)
 local info = Instance.new("TextLabel", ic); info.BackgroundTransparency = 1
 info.Size = UDim2.new(1, 0, 0, 160)
-info.Text = "Tap Simulator REBORN Hub\n\n• Auto Trick-or-Treat\n• Auto-Enchant with filter list\n• Anti-AFK\n• Discord hatch webhook with rarity + tier filters\n\nDrag the title bar to move.\n– minimizes, × closes."
+info.Text = "Tap Simulator REBORN Hub\n\n• Auto Trick-or-Treat\n• Auto-Enchant with filter list\n• Anti-AFK\n• Discord hatch webhook with pet thumbnails\n\nDrag the title bar to move.\n– minimizes, × closes."
 info.TextColor3 = C.textDim; info.Font = Enum.Font.Gotham; info.TextSize = 12
 info.TextXAlignment = Enum.TextXAlignment.Left; info.TextYAlignment = Enum.TextYAlignment.Top
 info.TextWrapped = true
@@ -483,7 +475,6 @@ switchTo("Halloween")
 -- AUTO-KNOCK
 local DWELL, BETWEEN, COOLDOWN, TRAVEL_WAIT = 0.75, 0.4, 30 * 60, 4
 local MAX_ATTEMPTS, BLEND = 3, 0.5
-
 local function travelTo(island) pcall(function() Travel:InvokeServer({ Source = "Portal", Island = island }) end) end
 
 local function getHouses()
@@ -639,28 +630,51 @@ Players.LocalPlayer.Idled:Connect(function()
 end)
 
 -- WEBHOOK
-local RARITY_COLOR = { Common=0x9E9E9E, Rare=0x4FC3F7, Epic=0xAB47BC, Legendary=0xFFB300, Mythical=0xE91E63, Secret=0xF44336 }
-local RARITY_EMOJI = { Common="⚪", Rare="🔵", Epic="🟣", Legendary="🟡", Mythical="🩷", Secret="⭐" }
-local TIER_PREFIX  = { Normal="", Golden="✨ ", Diamond="💎 ", Rainbow="🌈 " }
 local SUFFIXES = { "","K","M","B","T","Qa","Qi","Sx","Sp","Oc","No","Dc","UDc","DDc","TDc","QaDc","QiDc","SxDc","SpDc","OcDc","Vg","UVg","DVg","TVg","QaVg","QiVg","SxVg","SpVg","OcVg","NVg","Tg" }
-
-local scriptStart = os.clock()
-local sessionHatches = 0
-
 local function fmtNum(n)
     n = tonumber(n) or 0
     if n < 1000 then return tostring(math.floor(n)) end
     local tier = math.floor(math.log(n, 1000))
     tier = math.min(tier, #SUFFIXES - 1)
-    local scaled = n / (1000 ^ tier)
-    return string.format("%.2f%s", scaled, SUFFIXES[tier + 1])
+    return string.format("%.2f%s", n / (1000 ^ tier), SUFFIXES[tier + 1])
 end
 
 local function fmtRuntime(s)
-    local h, m, sec = math.floor(s/3600), math.floor((s%3600)/60), math.floor(s%60)
+    local h, m = math.floor(s/3600), math.floor((s%3600)/60)
+    local sec = math.floor(s%60)
     if h > 0 then return ("%dh %dm"):format(h, m) end
     if m > 0 then return ("%dm %ds"):format(m, sec) end
     return ("%ds"):format(sec)
+end
+
+local urlCache = {}
+local function assetToUrl(assetUri)
+    if not assetUri then return nil end
+    local id = tostring(assetUri):match("(%d+)")
+    if not id then return nil end
+    if urlCache[id] ~= nil then return urlCache[id] or nil end
+    local ok, data = pcall(function()
+        return HS:JSONDecode(game:HttpGet(("https://thumbnails.roblox.com/v1/assets?assetIds=%s&size=150x150&format=Png"):format(id)))
+    end)
+    if ok and data and data.data and data.data[1] and data.data[1].imageUrl then
+        urlCache[id] = data.data[1].imageUrl
+    else urlCache[id] = false end
+    return urlCache[id] or nil
+end
+
+local function getImageFromEntry(entry, tier)
+    if not entry then return nil end
+    local function try(v) if v and v ~= "" then return assetToUrl(v) end end
+    if tier == "Golden" then
+        local url = try(entry.ImageGolden); if url then return url end
+    end
+    return try(entry.Image) or try(entry.Portrait) or try(entry.Icon)
+end
+
+local function getPetImage(petName, tier)
+    local url = getImageFromEntry(PetVisual[petName], tier)
+    if url then return url end
+    return getImageFromEntry(OriginalPets[petName], tier)
 end
 
 local avatarUrl = nil
@@ -668,10 +682,54 @@ task.spawn(function()
     local ok, data = pcall(function()
         return HS:JSONDecode(game:HttpGet(("https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=%d&size=150x150&format=Png"):format(lp.UserId)))
     end)
-    if ok and data and data.data and data.data[1] then
-        avatarUrl = data.data[1].imageUrl
-    end
+    if ok and data and data.data and data.data[1] then avatarUrl = data.data[1].imageUrl end
 end)
+
+local queue, running = {}, false
+local function processQueue()
+    if running then return end
+    running = true
+    task.spawn(function()
+        local req = http_request or request or (syn and syn.request) or (fluxus and fluxus.request)
+        if not req then setStatus(whStatus, whDot, "no HTTP function in executor", C.bad); running = false; return end
+        while #queue > 0 do
+            local payload = table.remove(queue, 1)
+            local res
+            local ok = pcall(function()
+                res = req({ Url = Webhook.url, Method = "POST",
+                    Headers = { ["Content-Type"] = "application/json" },
+                    Body = HS:JSONEncode(payload) })
+            end)
+            if ok and res then
+                local code = res.StatusCode or res.Status or 0
+                if code == 429 then
+                    local wait = 1
+                    pcall(function()
+                        local d = HS:JSONDecode(res.Body)
+                        if d.retry_after then wait = d.retry_after + 0.1 end
+                    end)
+                    table.insert(queue, 1, payload); task.wait(wait)
+                elseif code >= 300 then
+                    setStatus(whStatus, whDot, "HTTP " .. code, C.bad)
+                else
+                    setStatus(whStatus, whDot, "sent · " .. os.date("%H:%M:%S"), C.good)
+                end
+            else setStatus(whStatus, whDot, "send error", C.bad) end
+            task.wait(0.6)
+        end
+        running = false
+    end)
+end
+local function send(payload)
+    if Webhook.url == "" then setStatus(whStatus, whDot, "no webhook URL set", C.bad); return end
+    table.insert(queue, payload); processQueue()
+end
+
+local RARITY_COLOR = { Common=0x9E9E9E, Rare=0x4FC3F7, Epic=0xAB47BC, Legendary=0xFFB300, Mythical=0xE91E63, Secret=0xF44336 }
+local RARITY_EMOJI = { Common="⚪", Rare="🔵", Epic="🟣", Legendary="🟡", Mythical="🩷", Secret="⭐" }
+
+local scriptStart = os.clock()
+local sessionEggs = 0
 
 local function pingContent()
     if Webhook.pingMode == "@everyone" then return "@everyone"
@@ -682,88 +740,60 @@ local function pingContent()
     return nil
 end
 
-local function sendRaw(payload)
-    local req = http_request or request or (syn and syn.request) or (fluxus and fluxus.request)
-    if not req then setStatus(whStatus, whDot, "no HTTP function in executor", C.bad); return end
-    local ok, res = pcall(function()
-        return req({ Url = Webhook.url, Method = "POST",
-            Headers = { ["Content-Type"] = "application/json" },
-            Body = HS:JSONEncode(payload) })
-    end)
-    if not ok then setStatus(whStatus, whDot, "send error", C.bad); return end
-    local code = res and (res.StatusCode or res.Status or 0)
-    if type(code) == "number" and code >= 200 and code < 300 then
-        setStatus(whStatus, whDot, "sent · " .. os.date("%H:%M:%S"), C.good)
-    else
-        setStatus(whStatus, whDot, "HTTP " .. tostring(code), C.bad)
-        warn("[Webhook] body:", res and res.Body)
-    end
-end
-
 local function buildPayload(pet, eggName, coins)
     local rarity = pet.Rarity or "Unknown"
     local tier = pet.Tier or "Normal"
+    local mutation = pet.Mutation
     local color = RARITY_COLOR[rarity] or 0x7E57C2
-    local prefix = TIER_PREFIX[tier] or ""
-
-    local desc = ("**%s** hatched %s**%s** · `1 in %s`"):format(
-        lp.DisplayName or lp.Name, prefix, pet.Name or "?", tostring(pet.OneIn or "?"))
-    if pet.AutoDeleted then desc = desc .. "\n⚠️ *Auto-deleted*" end
+    local petDisplay = pet.Name or "?"
+    if mutation then petDisplay = mutation .. " " .. petDisplay end
 
     local fields = {
-        { name = "🐾 Pet",     value = pet.Name or "?",   inline = true },
+        { name = "🐾 Pet",     value = petDisplay,       inline = true },
         { name = "💎 Rarity",  value = rarity,            inline = true },
         { name = "🏷️ Tier",    value = tier,              inline = true },
         { name = "🎲 Chance",  value = "1 in " .. fmtNum(pet.OneIn or 0), inline = true },
         { name = "⚡ Power",   value = fmtNum(pet.Power or 0), inline = true },
         { name = "🥚 Egg",     value = eggName or "?",    inline = true },
         { name = "💰 Coins",   value = fmtNum(coins or 0), inline = true },
-        { name = "📈 Session", value = sessionHatches .. " hatches", inline = true },
+        { name = "📈 Session", value = sessionEggs .. " eggs", inline = true },
         { name = "⏱️ Runtime", value = fmtRuntime(os.clock() - scriptStart), inline = true },
     }
+    if mutation then
+        table.insert(fields, 3, { name = "✨ Mutation", value = mutation, inline = true })
+    end
+
+    local embed = {
+        title = ("%s %s HATCHED!"):format(RARITY_EMOJI[rarity] or "💜", rarity:upper()),
+        color = color, fields = fields,
+        footer = { text = ("%s · aka %s"):format(lp.Name, lp.DisplayName or lp.Name), icon_url = avatarUrl },
+        timestamp = DateTime.now():ToIsoDate(),
+    }
+    local petImg = getPetImage(pet.Name, tier)
+    if petImg then embed.thumbnail = { url = petImg } end
+
     return {
         username = "Pet Tracker", avatar_url = avatarUrl,
         content = pingContent(),
         allowed_mentions = { parse = { "everyone", "users" } },
-        embeds = {{
-            title = ("%s %s HATCHED!"):format(RARITY_EMOJI[rarity] or "💜", rarity:upper()),
-            description = desc, color = color, fields = fields,
-            footer = { text = ("%s · aka %s"):format(lp.Name, lp.DisplayName or lp.Name), icon_url = avatarUrl },
-            timestamp = DateTime.now():ToIsoDate(),
-        }},
+        embeds = { embed },
     }
 end
 
 _G.__tsrSendTest = function()
-    if Webhook.url == "" then setStatus(whStatus, whDot, "no webhook URL set", C.bad); return end
-    local fakePet = { Name = "Test Pet", Rarity = "Legendary", Tier = "Golden", OneIn = 999, Power = 123456, AutoDeleted = false }
-    sendRaw(buildPayload(fakePet, "Test Egg", 9.65e22))
+    local fakePet = { Name = "Phoenix", Rarity = "Legendary", Tier = "Golden", OneIn = 999, Power = 123456, AutoDeleted = false }
+    send(buildPayload(fakePet, "Test Egg", 9.65e22))
 end
 
 EggHatchResult.OnClientEvent:Connect(function(data)
-    if not Webhook.enabled or Webhook.url == "" then return end
+    if not Webhook.enabled then return end
     if type(data) ~= "table" or not data.Pets then return end
-    sessionHatches = sessionHatches + 1
+    sessionEggs = sessionEggs + (data.Rolls or 1)
     for _, pet in ipairs(data.Pets) do
-        local rOk = Webhook.rarities[pet.Rarity or ""] == true
-        local tOk = Webhook.tiers[pet.Tier or ""] == true
-        if rOk or tOk then
-            sendRaw(buildPayload(pet, data.Egg, data.Coins))
+        if Webhook.rarities[pet.Rarity or ""] or Webhook.tiers[pet.Tier or ""] then
+            send(buildPayload(pet, data.Egg, data.Coins))
         end
     end
 end)
 
-EggHatchResult.OnClientEvent:Connect(function(data)
-    if not Webhook.enabled or Webhook.url == "" then return end
-    if type(data) ~= "table" or not data.Pets then return end
-    sessionHatches = sessionHatches + 1
-    for _, pet in ipairs(data.Pets) do
-        local rOk = Webhook.rarities[pet.Rarity or ""] == true
-        local tOk = Webhook.tiers[pet.Tier or ""] == true
-        if rOk or tOk then
-            sendRaw(buildPayload(pet, data.Egg, data.Coins))
-        end
-    end
-end)
-
-warn("[TSReborn] v6 loaded")
+warn("[TSReborn] v7 loaded")
