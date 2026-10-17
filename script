@@ -1,5 +1,5 @@
 -- ============================================
--- Tap Simulator REBORN — v4.2
+-- Tap Simulator REBORN — v5
 -- ============================================
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
@@ -10,9 +10,12 @@ local lp = Players.LocalPlayer
 local Knock  = RS.RemoteServices.TrickOrTreatService.RF.Knock
 local Travel = RS.RemoteServices.IslandService.RF.Travel
 local Enc    = RS.RemoteServices.EnchantService.RF
+local EggHatchResult = RS.RemoteServices.EggService.RE.EggHatchResult
 
 local AutoKnock = { enabled = false }
 local AutoEnchant = { enabled = false, slot = 1, wanted = {} }
+local AntiAFK = { enabled = false }
+local Webhook = { enabled = false, url = "", ping = "" }
 
 local TIERED    = { "Power", "Precision", "Renewal", "Fortune", "Payday", "Scavenger", "Lucky", "Collector", "Alchemist" }
 local LEGENDARY = { "Frenzy", "Autopilot", "Jackpot", "Prospector", "Four-Leaf", "Golden Touch" }
@@ -80,7 +83,7 @@ title.TextXAlignment = Enum.TextXAlignment.Left
 local subtitle = Instance.new("TextLabel", header)
 subtitle.BackgroundTransparency = 1; subtitle.Position = UDim2.new(0, 62, 0, 32)
 subtitle.Size = UDim2.new(1, -160, 0, 16)
-subtitle.Text = "Premium Script Hub · v4.2"
+subtitle.Text = "Premium Script Hub · v5"
 subtitle.TextColor3 = C.muted; subtitle.Font = Enum.Font.Gotham; subtitle.TextSize = 11
 subtitle.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -220,6 +223,18 @@ local function tinyLabel(parent, text)
     l.Font = Enum.Font.GothamBold; l.TextSize = 10; l.TextXAlignment = Enum.TextXAlignment.Left
 end
 
+local function makeTB(parent, placeholder, onChange)
+    local tb = Instance.new("TextBox", parent)
+    tb.Size = UDim2.new(1, 0, 0, 32); tb.BackgroundColor3 = C.cardAlt; tb.BorderSizePixel = 0
+    tb.Text = ""; tb.PlaceholderText = placeholder
+    tb.TextColor3 = C.text; tb.PlaceholderColor3 = C.muted
+    tb.Font = Enum.Font.Gotham; tb.TextSize = 11; tb.ClearTextOnFocus = false
+    Instance.new("UICorner", tb).CornerRadius = UDim.new(0, 6)
+    local tp = Instance.new("UIPadding", tb); tp.PaddingLeft = UDim.new(0, 8); tp.PaddingRight = UDim.new(0, 8)
+    tb.FocusLost:Connect(function() onChange(tb.Text) end)
+    return tb
+end
+
 local function slotRow(parent, currentSlot, onSelect)
     local row = Instance.new("Frame", parent); row.BackgroundTransparency = 1; row.Size = UDim2.new(1, 0, 0, 36)
     local l = Instance.new("UIListLayout", row); l.FillDirection = Enum.FillDirection.Horizontal; l.Padding = UDim.new(0, 8)
@@ -326,6 +341,11 @@ local function statusBar(parent)
     return l, dot
 end
 
+local function setStatus(label, dot, text, color)
+    label.Text = text; label.TextColor3 = color or C.textDim
+    dot.BackgroundColor3 = color or C.muted
+end
+
 -- PAGES
 local pageH = makePage("Halloween")
 sectionHeader(pageH, "AUTO TRICK-OR-TREAT")
@@ -351,25 +371,35 @@ for _, n in ipairs(MYTHIC) do checkRow(mythBody, n, C.mythic) end
 local secBody = dropdown(wc, "Secret", C.secret)
 for _, n in ipairs(SECRET) do checkRow(secBody, n, C.secret) end
 
+local pageM = makePage("Misc")
+sectionHeader(pageM, "ANTI-AFK")
+local afkCard = card(pageM)
+toggleRow(afkCard, "Enabled", "Prevents the 20-minute idle kick", false, function(v) AntiAFK.enabled = v end)
+
+sectionHeader(pageM, "DISCORD WEBHOOK")
+local whCard = card(pageM)
+toggleRow(whCard, "Enabled", "Posts hatches to Discord", false, function(v) Webhook.enabled = v end)
+tinyLabel(whCard, "WEBHOOK URL")
+makeTB(whCard, "https://discord.com/api/webhooks/...", function(t) Webhook.url = t end)
+tinyLabel(whCard, "PING (optional)")
+makeTB(whCard, "@everyone, @here, or <@userid>", function(t) Webhook.ping = t end)
+local whStatus, whDot = statusBar(pageM)
+
 local pageI = makePage("Info")
 sectionHeader(pageI, "ABOUT")
 local ic = card(pageI)
 local info = Instance.new("TextLabel", ic); info.BackgroundTransparency = 1
-info.Size = UDim2.new(1, 0, 0, 120)
-info.Text = "Tap Simulator REBORN Hub\n\n• Auto Trick-or-Treat (Halloween)\n• Auto-Enchant with filter list\n\nDrag the title bar to move.\n– minimizes, × closes."
+info.Size = UDim2.new(1, 0, 0, 140)
+info.Text = "Tap Simulator REBORN Hub\n\n• Auto Trick-or-Treat (Halloween)\n• Auto-Enchant with filter list\n• Anti-AFK\n• Discord hatch webhook\n\nDrag the title bar to move.\n– minimizes, × closes."
 info.TextColor3 = C.textDim; info.Font = Enum.Font.Gotham; info.TextSize = 12
 info.TextXAlignment = Enum.TextXAlignment.Left; info.TextYAlignment = Enum.TextYAlignment.Top
 info.TextWrapped = true
 
 makeTab("Halloween", "H")
 makeTab("Enchanting", "E")
+makeTab("Misc", "M")
 makeTab("Info", "i")
 switchTo("Halloween")
-
-local function setStatus(label, dot, text, color)
-    label.Text = text; label.TextColor3 = color or C.textDim
-    dot.BackgroundColor3 = color or C.muted
-end
 
 -- AUTO-KNOCK
 local DWELL, BETWEEN, COOLDOWN, TRAVEL_WAIT = 0.75, 0.4, 30 * 60, 4
@@ -488,11 +518,9 @@ task.spawn(function()
         if AutoEnchant.enabled then
             local petId = getPetId()
             if not petId then
-                setStatus(encStatus, encDot, "no pet selected", C.bad)
-                task.wait(1)
+                setStatus(encStatus, encDot, "no pet selected", C.bad); task.wait(1)
             elseif petId == lastKeptPet then
-                setStatus(encStatus, encDot, "waiting for new pet…", C.warn)
-                task.wait(0.5)
+                setStatus(encStatus, encDot, "waiting for new pet…", C.warn); task.wait(0.5)
             else
                 local s = Enc.GetState:InvokeServer()
                 local p = s and s.Enchanting and s.Enchanting.Pending
@@ -525,10 +553,71 @@ task.spawn(function()
                 end
             end
         else
-            setStatus(encStatus, encDot, "idle", C.muted)
-            task.wait(0.3)
+            setStatus(encStatus, encDot, "idle", C.muted); task.wait(0.3)
         end
     end
 end)
 
-warn("[TSReborn] v4.2 loaded")
+-- ANTI-AFK
+Players.LocalPlayer.Idled:Connect(function()
+    if not AntiAFK.enabled then return end
+    local vu = game:GetService("VirtualUser")
+    vu:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+    task.wait(1)
+    vu:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+end)
+
+-- WEBHOOK (hatches)
+local function sendWebhook(payload)
+    if not Webhook.enabled or Webhook.url == "" then return end
+    local req = http_request or request or (syn and syn.request)
+    if not req then
+        setStatus(whStatus, whDot, "no http function in executor", C.bad); return
+    end
+    local ok = pcall(function()
+        req({
+            Url = Webhook.url, Method = "POST",
+            Headers = { ["Content-Type"] = "application/json" },
+            Body = HS:JSONEncode(payload),
+        })
+    end)
+    if ok then setStatus(whStatus, whDot, "sent · " .. os.date("%H:%M:%S"), C.good)
+    else setStatus(whStatus, whDot, "send error", C.bad) end
+end
+
+EggHatchResult.OnClientEvent:Connect(function(data)
+    if not Webhook.enabled then return end
+    if type(data) ~= "table" or not data.Pets then return end
+
+    local fields = {}
+    for _, pet in ipairs(data.Pets) do
+        local notable = (not pet.AutoDeleted) or pet.Tier ~= "Normal"
+                     or pet.Rarity == "Secret" or pet.Rarity == "Mythic" or pet.Rarity == "Legendary"
+        if notable then
+            table.insert(fields, {
+                name = ("%s%s"):format(pet.Tier ~= "Normal" and (pet.Tier .. " ") or "", pet.Name or "?"),
+                value = ("`%s` · 1 in %s · %s power"):format(
+                    pet.Rarity or "?", tostring(pet.OneIn or "?"), tostring(pet.Power or "?")
+                ),
+                inline = false,
+            })
+        end
+    end
+    if #fields == 0 then return end
+
+    local payload = {
+        username = "Tap Sim REBORN",
+        content = Webhook.ping ~= "" and Webhook.ping or nil,
+        allowed_mentions = { parse = { "everyone", "users" } },
+        embeds = {{
+            title = ("Hatched from %s Egg"):format(data.Egg or "?"),
+            description = ("Rolls: **%d**"):format(data.Rolls or 1),
+            color = 9127167,
+            fields = fields,
+            footer = { text = ("%s · %s"):format(lp.Name, os.date("%H:%M:%S")) },
+        }},
+    }
+    sendWebhook(payload)
+end)
+
+warn("[TSReborn] v5 loaded")
