@@ -558,6 +558,13 @@ task.spawn(function()
                     local cc = lp.Character; local hh = cc and cc:FindFirstChild("HumanoidRootPart")
                     if hh then hh.CFrame = originCF end
                 end
+
+                task.wait(1)
+                local vim = game:GetService("VirtualInputManager")
+                vim:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+                task.wait(0.05)
+                vim:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+
                 local t = 0
                 while t < COOLDOWN and AutoKnock.enabled do
                     setStatus(knockStatus, knockDot, ("cooldown · %dm"):format(math.floor((COOLDOWN - t) / 60)), C.good)
