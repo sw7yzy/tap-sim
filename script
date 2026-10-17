@@ -1,5 +1,5 @@
 -- ============================================
--- Tap Simulator REBORN — v10
+-- Tap Simulator REBORN — v11
 -- ============================================
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
@@ -11,6 +11,7 @@ local Knock  = RS.RemoteServices.TrickOrTreatService.RF.Knock
 local Travel = RS.RemoteServices.IslandService.RF.Travel
 local Enc    = RS.RemoteServices.EnchantService.RF
 local Tap    = RS.RemoteServices.TapService.RE.TapRequested
+local HatchRE = RS.RemoteServices.EggService.RE.EggHatchRequested
 local EggHatchResult = RS.RemoteServices.EggService.RE.EggHatchResult
 
 local OriginalPets = require(RS.Shared.Pets.OriginalPetCatalog)
@@ -47,7 +48,7 @@ local C = {
     tRainbow=Color3.fromRGB(255,120,200),
 }
 
--- Config file system
+-- Config files
 local CONFIG_DIR = "TSReborn"
 local CONFIG_SUB = CONFIG_DIR .. "/configs"
 local AUTOLOAD_FILE = CONFIG_DIR .. "/autoload.txt"
@@ -65,7 +66,7 @@ local function listConfigs()
 end
 
 local UISetters = {}
-local refreshCheckRows = {}  -- tier/rarity/enchant refresh callbacks
+local refreshCheckRows = {}
 
 local function snapshot()
     return {
@@ -80,10 +81,9 @@ local function snapshot()
         },
     }
 end
-
 local function applyConfig(cfg)
     if type(cfg) ~= "table" then return end
-    local function set(key, val) if UISetters[key] then UISetters[key](val) end end
+    local function set(k, v) if UISetters[k] then UISetters[k](v) end end
     if cfg.AutoKnock then set("AutoKnock.enabled", cfg.AutoKnock.enabled) end
     if cfg.AutoBoss then set("AutoBoss.enabled", cfg.AutoBoss.enabled) end
     if cfg.AntiAFK then set("AntiAFK.enabled", cfg.AntiAFK.enabled) end
@@ -102,34 +102,23 @@ local function applyConfig(cfg)
     end
     for _, fn in ipairs(refreshCheckRows) do fn() end
 end
-
-local function saveConfig(name)
-    if not writefile then return false end
-    writefile(CONFIG_SUB .. "/" .. name .. ".json", HS:JSONEncode(snapshot()))
-    return true
-end
+local function saveConfig(name) if writefile then writefile(CONFIG_SUB.."/"..name..".json", HS:JSONEncode(snapshot())); return true end end
 local function loadConfigFile(name)
-    if not readfile or not isfile then return false end
-    local path = CONFIG_SUB .. "/" .. name .. ".json"
-    if not isfile(path) then return false end
-    local ok, data = pcall(function() return HS:JSONDecode(readfile(path)) end)
+    if not (readfile and isfile) then return false end
+    local p = CONFIG_SUB.."/"..name..".json"
+    if not isfile(p) then return false end
+    local ok, data = pcall(function() return HS:JSONDecode(readfile(p)) end)
     if not ok then return false end
     applyConfig(data); return true
 end
 local function deleteConfigFile(name)
     if delfile and isfile then
-        local p = CONFIG_SUB .. "/" .. name .. ".json"
+        local p = CONFIG_SUB.."/"..name..".json"
         if isfile(p) then delfile(p); return true end
     end
-    return false
 end
-local function setAutoload(name)
-    if writefile then writefile(AUTOLOAD_FILE, name or "") end
-end
-local function getAutoload()
-    if isfile and isfile(AUTOLOAD_FILE) then return readfile(AUTOLOAD_FILE) end
-    return ""
-end
+local function setAutoload(name) if writefile then writefile(AUTOLOAD_FILE, name or "") end end
+local function getAutoload() if isfile and isfile(AUTOLOAD_FILE) then return readfile(AUTOLOAD_FILE) end return "" end
 
 pcall(function() lp.PlayerGui:FindFirstChild("TSRebornMenu"):Destroy() end)
 local gui = Instance.new("ScreenGui")
@@ -152,12 +141,10 @@ header.Size = UDim2.new(1, 0, 0, 60); header.BackgroundColor3 = C.panel; header.
 Instance.new("UICorner", header).CornerRadius = UDim.new(0, 14)
 local hf = Instance.new("Frame", header); hf.Size = UDim2.new(1, 0, 0, 14); hf.Position = UDim2.new(0, 0, 1, -14)
 hf.BackgroundColor3 = C.panel; hf.BorderSizePixel = 0
-
 local topStrip = Instance.new("Frame", header)
 topStrip.Size = UDim2.new(1, 0, 0, 2); topStrip.BackgroundColor3 = Color3.new(1,1,1); topStrip.BorderSizePixel = 0
 local sg = Instance.new("UIGradient", topStrip)
 sg.Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, C.accent1), ColorSequenceKeypoint.new(1, C.accent2) })
-
 local logo = Instance.new("Frame", header)
 logo.Size = UDim2.new(0, 38, 0, 38); logo.Position = UDim2.new(0, 14, 0, 11)
 logo.BackgroundColor3 = C.accent1; logo.BorderSizePixel = 0
@@ -169,17 +156,15 @@ local logoTxt = Instance.new("TextLabel", logo)
 logoTxt.BackgroundTransparency = 1; logoTxt.Size = UDim2.new(1, 0, 1, 0)
 logoTxt.Text = "TR"; logoTxt.TextColor3 = Color3.new(1,1,1)
 logoTxt.Font = Enum.Font.GothamBold; logoTxt.TextSize = 15
-
 local title = Instance.new("TextLabel", header)
 title.BackgroundTransparency = 1; title.Position = UDim2.new(0, 62, 0, 10)
 title.Size = UDim2.new(1, -160, 0, 22)
 title.Text = "Tap Sim REBORN"; title.TextColor3 = C.text
 title.Font = Enum.Font.GothamBold; title.TextSize = 16; title.TextXAlignment = Enum.TextXAlignment.Left
-
 local subtitle = Instance.new("TextLabel", header)
 subtitle.BackgroundTransparency = 1; subtitle.Position = UDim2.new(0, 62, 0, 32)
 subtitle.Size = UDim2.new(1, -160, 0, 16)
-subtitle.Text = "Premium Script Hub · v10"
+subtitle.Text = "Premium Script Hub · v11"
 subtitle.TextColor3 = C.muted; subtitle.Font = Enum.Font.Gotham; subtitle.TextSize = 11
 subtitle.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -203,14 +188,12 @@ headerBtn(-42, "×", C.bad, function() gui:Destroy() end)
 local body = Instance.new("Frame", main)
 body.Position = UDim2.new(0, 10, 0, 68); body.Size = UDim2.new(1, -20, 1, -78)
 body.BackgroundTransparency = 1
-
 local sidebar = Instance.new("Frame", body)
 sidebar.Size = UDim2.new(0, 150, 1, 0); sidebar.BackgroundColor3 = C.sidebar; sidebar.BorderSizePixel = 0
 Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 10)
 local sp = Instance.new("UIPadding", sidebar)
 sp.PaddingTop = UDim.new(0, 10); sp.PaddingLeft = UDim.new(0, 8); sp.PaddingRight = UDim.new(0, 8); sp.PaddingBottom = UDim.new(0, 10)
 local sl = Instance.new("UIListLayout", sidebar); sl.Padding = UDim.new(0, 4); sl.SortOrder = Enum.SortOrder.LayoutOrder
-
 local content = Instance.new("Frame", body)
 content.Position = UDim2.new(0, 158, 0, 0); content.Size = UDim2.new(1, -158, 1, 0)
 content.BackgroundColor3 = C.panel; content.BorderSizePixel = 0
@@ -311,9 +294,7 @@ local function toggleRow(parent, label, desc, initial, callback, setterKey)
         tween(track, { BackgroundColor3 = state and C.accent1 or C.cardAlt }, 0.18)
         tween(knob, { Position = state and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9) }, 0.18)
     end
-    track.MouseButton1Click:Connect(function()
-        setVisual(not state); callback(state)
-    end)
+    track.MouseButton1Click:Connect(function() setVisual(not state); callback(state) end)
     if setterKey then UISetters[setterKey] = function(v) setVisual(v); callback(state) end end
 end
 
@@ -488,14 +469,34 @@ local function setStatus(label, dot, text, color)
     dot.BackgroundColor3 = color or C.muted
 end
 
-local function pressF()
-    task.wait(1)
-    local ok, vim = pcall(function() return game:GetService("VirtualInputManager") end)
-    if ok and vim then
-        vim:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-        task.wait(0.05)
-        vim:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+-- Hatch remote tracker (fires auto-hatch directly, no popup can block)
+local lastHatch = { Egg = nil, Count = 8, Seq = 0, Auto = true }
+local oldHatch
+oldHatch = hookmetamethod(HatchRE, "__namecall", function(self, ...)
+    if self == HatchRE and getnamecallmethod() == "FireServer" then
+        local a = ({...})[1]
+        if type(a) == "table" and a.Egg then
+            lastHatch.Egg = a.Egg
+            lastHatch.Count = a.Count or lastHatch.Count
+            if a.Seq then lastHatch.Seq = math.max(lastHatch.Seq, a.Seq) end
+            if a.Auto ~= nil then lastHatch.Auto = a.Auto end
+        end
     end
+    return oldHatch(self, ...)
+end)
+
+local function resumeHatch()
+    if not lastHatch.Egg then return end
+    task.wait(0.5)
+    lastHatch.Seq = lastHatch.Seq + 1
+    pcall(function()
+        HatchRE:FireServer({
+            Egg = lastHatch.Egg,
+            Count = lastHatch.Count,
+            Seq = lastHatch.Seq,
+            Auto = true,
+        })
+    end)
 end
 
 -- Halloween page
@@ -509,7 +510,6 @@ local bossCard = card(pageH)
 toggleRow(bossCard, "Auto-defeat", "TPs and spam-taps when boss spawns", false, function(v) AutoBoss.enabled = v end, "AutoBoss.enabled")
 local bossStatus, bossDot = statusBar(pageH)
 
--- Enchanting
 local pageE = makePage("Enchanting")
 sectionHeader(pageE, "AUTO-ENCHANT")
 local ec = card(pageE)
@@ -531,7 +531,6 @@ for _, n in ipairs(MYTHIC) do checkRow(mythBody, n, C.rMythical, function() retu
 local secBody = dropdown(wc, "Secret", C.rSecret)
 for _, n in ipairs(SECRET) do checkRow(secBody, n, C.rSecret, function() return AutoEnchant.wanted[n] end, function(v) AutoEnchant.wanted[n] = v or nil end) end
 
--- Misc
 local pageM = makePage("Misc")
 sectionHeader(pageM, "ANTI-AFK")
 local afkCard = card(pageM)
@@ -560,17 +559,14 @@ for _, t in ipairs({ "Normal","Golden","Diamond","Rainbow" }) do
 end
 primaryBtn(filterCard, "SEND TEST WEBHOOK", function() _G.__tsrSendTest() end)
 
--- Config page
 local pageC = makePage("Config")
 sectionHeader(pageC, "CONFIG MANAGER")
 local cfgCard = card(pageC)
 local currentConfigName = ""
 tinyLabel(cfgCard, "CONFIG NAME")
 makeTB(cfgCard, "my-config", "", function(t) currentConfigName = t:gsub("[^%w_-]", "") end)
-
 local cfgStatus, cfgDot = statusBar(pageC)
 local function cfgSay(text, color) setStatus(cfgStatus, cfgDot, text, color) end
-
 local btnRow = Instance.new("Frame", cfgCard)
 btnRow.BackgroundTransparency = 1; btnRow.Size = UDim2.new(1, 0, 0, 34)
 local brl = Instance.new("UIListLayout", btnRow); brl.FillDirection = Enum.FillDirection.Horizontal; brl.Padding = UDim.new(0, 6)
@@ -581,23 +577,20 @@ local function miniBtn(parent, text, color, onClick)
     b.Font = Enum.Font.GothamBold; b.TextSize = 11; b.BorderSizePixel = 0; b.AutoButtonColor = false
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
     b.MouseButton1Click:Connect(onClick)
-    return b
 end
 miniBtn(btnRow, "SAVE", C.good, function()
     if currentConfigName == "" then cfgSay("name required", C.bad); return end
-    local path = CONFIG_SUB .. "/" .. currentConfigName .. ".json"
+    local path = CONFIG_SUB.."/"..currentConfigName..".json"
     if isfile and isfile(path) then cfgSay("exists · use OVERRIDE", C.warn); return end
-    if saveConfig(currentConfigName) then cfgSay("saved: " .. currentConfigName, C.good)
-    else cfgSay("save failed", C.bad) end
+    if saveConfig(currentConfigName) then cfgSay("saved: "..currentConfigName, C.good) end
 end)
 miniBtn(btnRow, "OVERRIDE", C.warn, function()
     if currentConfigName == "" then cfgSay("name required", C.bad); return end
-    if saveConfig(currentConfigName) then cfgSay("overridden: " .. currentConfigName, C.good)
-    else cfgSay("save failed", C.bad) end
+    if saveConfig(currentConfigName) then cfgSay("overridden: "..currentConfigName, C.good) end
 end)
 miniBtn(btnRow, "DELETE", C.bad, function()
     if currentConfigName == "" then cfgSay("name required", C.bad); return end
-    if deleteConfigFile(currentConfigName) then cfgSay("deleted: " .. currentConfigName, C.good)
+    if deleteConfigFile(currentConfigName) then cfgSay("deleted: "..currentConfigName, C.good)
     else cfgSay("not found", C.bad) end
 end)
 
@@ -607,7 +600,6 @@ local listBody = Instance.new("Frame", listCard)
 listBody.BackgroundTransparency = 1; listBody.Size = UDim2.new(1, 0, 0, 0)
 listBody.AutomaticSize = Enum.AutomaticSize.Y
 local lbl = Instance.new("UIListLayout", listBody); lbl.Padding = UDim.new(0, 4)
-
 local function refreshList()
     for _, c in ipairs(listBody:GetChildren()) do if not c:IsA("UIListLayout") then c:Destroy() end end
     for _, name in ipairs(listConfigs()) do
@@ -626,26 +618,23 @@ local function refreshList()
         loadBtn.BorderSizePixel = 0; loadBtn.AutoButtonColor = false
         Instance.new("UICorner", loadBtn).CornerRadius = UDim.new(0, 5)
         loadBtn.MouseButton1Click:Connect(function()
-            if loadConfigFile(name) then cfgSay("loaded: " .. name, C.good)
-            else cfgSay("load failed", C.bad) end
+            if loadConfigFile(name) then cfgSay("loaded: "..name, C.good) else cfgSay("load failed", C.bad) end
         end)
     end
 end
 refreshList()
 primaryBtn(listCard, "REFRESH LIST", refreshList)
-
 sectionHeader(pageC, "AUTO-LOAD ON STARTUP")
 local autoCard = card(pageC)
-tinyLabel(autoCard, "CONFIG NAME TO AUTO-LOAD (blank = off)")
-local autoName = getAutoload() or ""
-makeTB(autoCard, "my-config", autoName, function(t) setAutoload(t) end)
+tinyLabel(autoCard, "CONFIG NAME (blank = off)")
+makeTB(autoCard, "my-config", getAutoload() or "", function(t) setAutoload(t) end)
 
 local pageI = makePage("Info")
 sectionHeader(pageI, "ABOUT")
 local ic = card(pageI)
 local info = Instance.new("TextLabel", ic); info.BackgroundTransparency = 1
 info.Size = UDim2.new(1, 0, 0, 180)
-info.Text = "Tap Simulator REBORN Hub\n\n• Auto Trick-or-Treat\n• Auto Halloween Boss\n• Auto-Enchant\n• Anti-AFK\n• Discord hatch webhook with filters\n• Config save/load\n\nDrag the title bar to move."
+info.Text = "Tap Simulator REBORN Hub v11\n\n• Auto Trick-or-Treat (resumes hatching via remote)\n• Auto Halloween Boss\n• Auto-Enchant\n• Anti-AFK\n• Webhook with filters + pet thumbnails\n• Config save/load/autoload\n\nHatch manually once at session start so the resumer captures your egg."
 info.TextColor3 = C.textDim; info.Font = Enum.Font.Gotham; info.TextSize = 12
 info.TextXAlignment = Enum.TextXAlignment.Left; info.TextYAlignment = Enum.TextYAlignment.Top
 info.TextWrapped = true
@@ -685,7 +674,6 @@ local function getHouses()
     table.sort(list, function(a, b) return a.id < b.id end)
     return list
 end
-
 local function onHalloweenIsland() return #getHouses() >= 11 end
 local function waitForHalloween()
     local t = 0
@@ -743,7 +731,7 @@ task.spawn(function()
                     local cc = lp.Character; local hh = cc and cc:FindFirstChild("HumanoidRootPart")
                     if hh then hh.CFrame = originCF end
                 end
-                pressF()
+                resumeHatch()
                 local t = 0
                 while t < COOLDOWN and AutoKnock.enabled do
                     setStatus(knockStatus, knockDot, ("cooldown · %dm"):format(math.floor((COOLDOWN - t) / 60)), C.good)
@@ -811,7 +799,7 @@ task.spawn(function()
                     local hh = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
                     if hh then hh.CFrame = originCF end
                 end
-                pressF()
+                resumeHatch()
                 task.wait(2)
             else
                 setStatus(bossStatus, bossDot, "waiting for boss…", C.muted)
@@ -865,7 +853,7 @@ task.spawn(function()
                         local pp = st and st.Enchanting and st.Enchanting.Pending
                         if pp and pp.Token then Enc.Resolve:InvokeServer({ Token = pp.Token, UseNew = false }) end
                     else
-                        setStatus(encStatus, encDot, "error · " .. tostring(res and res.Reason or "?"), C.bad); task.wait(0.3)
+                        setStatus(encStatus, encDot, "error · "..tostring(res and res.Reason or "?"), C.bad); task.wait(0.3)
                     end
                 end
             end
@@ -891,7 +879,6 @@ local function fmtNum(n)
     tier = math.min(tier, #SUFFIXES - 1)
     return string.format("%.2f%s", n / (1000 ^ tier), SUFFIXES[tier + 1])
 end
-
 local function fmtRuntime(s)
     local h, m = math.floor(s/3600), math.floor((s%3600)/60)
     local sec = math.floor(s%60)
@@ -914,7 +901,6 @@ local function assetToUrl(assetUri)
     else urlCache[id] = false end
     return urlCache[id] or nil
 end
-
 local function getImageFromEntry(entry, tier)
     if not entry then return nil end
     local function try(v) if v and v ~= "" then return assetToUrl(v) end end
@@ -923,7 +909,6 @@ local function getImageFromEntry(entry, tier)
     end
     return try(entry.Image) or try(entry.Portrait) or try(entry.Icon)
 end
-
 local function getPetImage(petName, tier)
     local url = getImageFromEntry(PetVisual[petName], tier)
     if url then return url end
@@ -963,9 +948,9 @@ local function processQueue()
                     end)
                     table.insert(queue, 1, payload); task.wait(wait)
                 elseif code >= 300 then
-                    setStatus(whStatus, whDot, "HTTP " .. code, C.bad)
+                    setStatus(whStatus, whDot, "HTTP "..code, C.bad)
                 else
-                    setStatus(whStatus, whDot, "sent · " .. os.date("%H:%M:%S"), C.good)
+                    setStatus(whStatus, whDot, "sent · "..os.date("%H:%M:%S"), C.good)
                 end
             else setStatus(whStatus, whDot, "send error", C.bad) end
             task.wait(0.6)
@@ -980,7 +965,6 @@ end
 
 local RARITY_COLOR = { Common=0x9E9E9E, Rare=0x4FC3F7, Epic=0xAB47BC, Legendary=0xFFB300, Mythical=0xE91E63, Secret=0xF44336 }
 local RARITY_EMOJI = { Common="⚪", Rare="🔵", Epic="🟣", Legendary="🟡", Mythical="🩷", Secret="⭐" }
-
 local scriptStart = os.clock()
 local sessionEggs = 0
 
@@ -1012,9 +996,7 @@ local function buildPayload(pet, eggName, coins)
         { name = "📈 Session", value = sessionEggs .. " eggs", inline = true },
         { name = "⏱️ Runtime", value = fmtRuntime(os.clock() - scriptStart), inline = true },
     }
-    if mutation then
-        table.insert(fields, 3, { name = "✨ Mutation", value = mutation, inline = true })
-    end
+    if mutation then table.insert(fields, 3, { name = "✨ Mutation", value = mutation, inline = true }) end
 
     local embed = {
         title = ("%s %s HATCHED!"):format(RARITY_EMOJI[rarity] or "💜", rarity:upper()),
@@ -1051,15 +1033,13 @@ EggHatchResult.OnClientEvent:Connect(function(data)
     end
 end)
 
--- Auto-load config on startup
+-- Autoload
 task.spawn(function()
     task.wait(0.5)
     local name = getAutoload()
     if name and name ~= "" then
-        if loadConfigFile(name) then
-            warn("[TSReborn] auto-loaded config: " .. name)
-        end
+        if loadConfigFile(name) then warn("[TSReborn] auto-loaded: " .. name) end
     end
 end)
 
-warn("[TSReborn] v10 loaded")
+warn("[TSReborn] v11 loaded")
