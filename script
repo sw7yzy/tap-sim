@@ -1,5 +1,5 @@
 -- ============================================
--- Tap Simulator REBORN — v8
+-- Tap Simulator REBORN — v9
 -- ============================================
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
@@ -10,6 +10,7 @@ local lp = Players.LocalPlayer
 local Knock  = RS.RemoteServices.TrickOrTreatService.RF.Knock
 local Travel = RS.RemoteServices.IslandService.RF.Travel
 local Enc    = RS.RemoteServices.EnchantService.RF
+local Tap    = RS.RemoteServices.TapService.RE.TapRequested
 local EggHatchResult = RS.RemoteServices.EggService.RE.EggHatchResult
 
 local OriginalPets = require(RS.Shared.Pets.OriginalPetCatalog)
@@ -17,11 +18,11 @@ local PetVisual = require(RS.Shared.Pets.PetVisualConfig)
 
 local AutoKnock = { enabled = false }
 local AutoEnchant = { enabled = false, slot = 1, wanted = {} }
+local AutoBoss = { enabled = false }
 local AntiAFK = { enabled = false }
 local Webhook = {
     enabled = false, url = "", pingMode = "None", customPing = "",
-    ignoreAutoDeleted = true,
-    rarities = { Common=false, Rare=false, Epic=true, Legendary=true, Mythical=true, Secret=true },
+    rarities = { Common=false, Rare=false, Epic=false, Legendary=false, Mythical=true, Secret=true },
     tiers    = { Normal=false, Golden=true, Diamond=true, Rainbow=true },
 }
 
@@ -94,7 +95,7 @@ title.Font = Enum.Font.GothamBold; title.TextSize = 16; title.TextXAlignment = E
 local subtitle = Instance.new("TextLabel", header)
 subtitle.BackgroundTransparency = 1; subtitle.Position = UDim2.new(0, 62, 0, 32)
 subtitle.Size = UDim2.new(1, -160, 0, 16)
-subtitle.Text = "Premium Script Hub · v8"
+subtitle.Text = "Premium Script Hub · v9"
 subtitle.TextColor3 = C.muted; subtitle.Font = Enum.Font.Gotham; subtitle.TextSize = 11
 subtitle.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -396,11 +397,26 @@ local function setStatus(label, dot, text, color)
     dot.BackgroundColor3 = color or C.muted
 end
 
+local function pressF()
+    task.wait(1)
+    local ok, vim = pcall(function() return game:GetService("VirtualInputManager") end)
+    if ok and vim then
+        vim:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+        task.wait(0.05)
+        vim:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+    end
+end
+
 local pageH = makePage("Halloween")
 sectionHeader(pageH, "AUTO TRICK-OR-TREAT")
 local hc = card(pageH)
 toggleRow(hc, "Enabled", "Travels, claims all 11 houses, waits 30m", false, function(v) AutoKnock.enabled = v end)
 local knockStatus, knockDot = statusBar(pageH)
+
+sectionHeader(pageH, "HALLOWEEN BOSS")
+local bossCard = card(pageH)
+toggleRow(bossCard, "Auto-defeat", "TPs and spam-taps when boss spawns", false, function(v) AutoBoss.enabled = v end)
+local bossStatus, bossDot = statusBar(pageH)
 
 local pageE = makePage("Enchanting")
 sectionHeader(pageE, "AUTO-ENCHANT")
@@ -424,11 +440,9 @@ local secBody = dropdown(wc, "Secret", C.rSecret)
 for _, n in ipairs(SECRET) do checkRow(secBody, n, C.rSecret, function() return AutoEnchant.wanted[n] end, function(v) AutoEnchant.wanted[n] = v or nil end) end
 
 local pageM = makePage("Misc")
-
 sectionHeader(pageM, "ANTI-AFK")
 local afkCard = card(pageM)
 toggleRow(afkCard, "Enabled", "Prevents the 20-minute idle kick", false, function(v) AntiAFK.enabled = v end)
-
 sectionHeader(pageM, "DISCORD WEBHOOK")
 local whCard = card(pageM)
 toggleRow(whCard, "Enabled", "Posts hatches to Discord", false, function(v) Webhook.enabled = v end)
@@ -439,10 +453,8 @@ segmented(whCard, { "None", "@everyone", "@here", "User" }, "None", function(opt
 tinyLabel(whCard, "CUSTOM USER ID (only used when Ping Mode = User)")
 makeTB(whCard, "123456789012345678", "", function(t) Webhook.customPing = t end)
 local whStatus, whDot = statusBar(pageM)
-
-sectionHeader(pageM, "FILTERS — WHAT TO SEND")
+sectionHeader(pageM, "FILTERS — ONLY SENDS WHEN RARITY AND TIER BOTH MATCH")
 local filterCard = card(pageM)
-toggleRow(filterCard, "Ignore auto-deleted", "Skip pets you auto-trashed, unless tier is special", true, function(v) Webhook.ignoreAutoDeleted = v end)
 local rarityBody = dropdown(filterCard, "Rarities", C.accent1)
 local rarityOrder = { "Common","Rare","Epic","Legendary","Mythical","Secret" }
 local rarityColors = { Common=C.rCommon, Rare=C.rRare, Epic=C.rEpic, Legendary=C.rLegendary, Mythical=C.rMythical, Secret=C.rSecret }
@@ -461,8 +473,8 @@ local pageI = makePage("Info")
 sectionHeader(pageI, "ABOUT")
 local ic = card(pageI)
 local info = Instance.new("TextLabel", ic); info.BackgroundTransparency = 1
-info.Size = UDim2.new(1, 0, 0, 160)
-info.Text = "Tap Simulator REBORN Hub\n\n• Auto Trick-or-Treat\n• Auto-Enchant with filter list\n• Anti-AFK\n• Discord hatch webhook with pet thumbnails\n\nDrag the title bar to move.\n– minimizes, × closes."
+info.Size = UDim2.new(1, 0, 0, 180)
+info.Text = "Tap Simulator REBORN Hub\n\n• Auto Trick-or-Treat\n• Auto Halloween Boss\n• Auto-Enchant\n• Anti-AFK\n• Discord hatch webhook with filters\n\nDrag the title bar to move."
 info.TextColor3 = C.textDim; info.Font = Enum.Font.Gotham; info.TextSize = 12
 info.TextXAlignment = Enum.TextXAlignment.Left; info.TextYAlignment = Enum.TextYAlignment.Top
 info.TextWrapped = true
@@ -559,13 +571,7 @@ task.spawn(function()
                     local cc = lp.Character; local hh = cc and cc:FindFirstChild("HumanoidRootPart")
                     if hh then hh.CFrame = originCF end
                 end
-
-                task.wait(1)
-                local vim = game:GetService("VirtualInputManager")
-                vim:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-                task.wait(0.05)
-                vim:SendKeyEvent(false, Enum.KeyCode.F, false, game)
-
+                pressF()
                 local t = 0
                 while t < COOLDOWN and AutoKnock.enabled do
                     setStatus(knockStatus, knockDot, ("cooldown · %dm"):format(math.floor((COOLDOWN - t) / 60)), C.good)
@@ -574,6 +580,73 @@ task.spawn(function()
             end
         else
             setStatus(knockStatus, knockDot, "idle", C.muted); task.wait(0.5)
+        end
+    end
+end)
+
+-- AUTO-BOSS
+local bossSeq = 0
+local oldTap
+oldTap = hookmetamethod(Tap, "__namecall", function(self, ...)
+    if self == Tap and getnamecallmethod() == "FireServer" then
+        local a = ({...})[1]
+        if type(a) == "table" and a.ClientSequence then
+            bossSeq = math.max(bossSeq, a.ClientSequence)
+        end
+    end
+    return oldTap(self, ...)
+end)
+
+local function findBoss()
+    local f = workspace:FindFirstChild("HallowBoss")
+    local m = f and f:FindFirstChild("HallowLordBoss")
+    local root = m and (m:FindFirstChild("RootPart") or m:FindFirstChildWhichIsA("BasePart"))
+    return m, root
+end
+
+task.spawn(function()
+    while true do
+        if AutoBoss.enabled then
+            local _, root = findBoss()
+            if root then
+                setStatus(bossStatus, bossDot, "boss up · attacking", C.accent2)
+                local originCF
+                local hrp = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    originCF = hrp.CFrame
+                    hrp.CFrame = root.CFrame * CFrame.new(0, 0, 8)
+                end
+                local hits, missing = 0, 0
+                while AutoBoss.enabled do
+                    local model, newRoot = findBoss()
+                    if not model then
+                        missing = missing + 1
+                        if missing >= 30 then break end
+                    else
+                        missing = 0
+                        if hrp and newRoot then hrp.CFrame = newRoot.CFrame * CFrame.new(0, 0, 8) end
+                        bossSeq = bossSeq + 1
+                        Tap:FireServer({ ClientSequence = bossSeq, Auto = false, Source = "screen" })
+                        hits = hits + 1
+                        if hits % 50 == 0 then
+                            setStatus(bossStatus, bossDot, ("attacking · %d hits"):format(hits), C.accent2)
+                        end
+                    end
+                    task.wait(0.1)
+                end
+                setStatus(bossStatus, bossDot, ("defeated · %d hits"):format(hits), C.good)
+                if originCF then
+                    local hh = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+                    if hh then hh.CFrame = originCF end
+                end
+                pressF()
+                task.wait(2)
+            else
+                setStatus(bossStatus, bossDot, "waiting for boss…", C.muted)
+                task.wait(5)
+            end
+        else
+            setStatus(bossStatus, bossDot, "idle", C.muted); task.wait(0.5)
         end
     end
 end)
@@ -806,4 +879,4 @@ EggHatchResult.OnClientEvent:Connect(function(data)
     end
 end)
 
-warn("[TSReborn] v8 loaded")
+warn("[TSReborn] v9 loaded")
