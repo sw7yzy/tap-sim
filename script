@@ -798,18 +798,10 @@ EggHatchResult.OnClientEvent:Connect(function(data)
     if type(data) ~= "table" or not data.Pets then return end
     sessionEggs = sessionEggs + (data.Rolls or 1)
     for _, pet in ipairs(data.Pets) do
-        local rarity = pet.Rarity or ""
-        local tier = pet.Tier or "Normal"
-        local rOk = Webhook.rarities[rarity] or false
-        local tOk = Webhook.tiers[tier] or false
-        local specialTier = tier ~= "Normal" and Webhook.tiers[tier] or false
-
-        if rOk or tOk then
-            if Webhook.ignoreAutoDeleted and pet.AutoDeleted and not specialTier then
-                -- skipped
-            else
-                send(buildPayload(pet, data.Egg, data.Coins))
-            end
+        local rOk = Webhook.rarities[pet.Rarity or ""] or false
+        local tOk = Webhook.tiers[pet.Tier or ""] or false
+        if rOk and tOk then
+            send(buildPayload(pet, data.Egg, data.Coins))
         end
     end
 end)
