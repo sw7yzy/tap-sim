@@ -1,0 +1,3 @@
+# Tap Simulator REBORN codes
+# Add one code per line. Lines starting with # are ignored.
+# Script fetches this file at startup and auto-redeems each code once.
