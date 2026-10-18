@@ -10,6 +10,7 @@ local lp = Players.LocalPlayer
 
 local Knock  = RS.RemoteServices.TrickOrTreatService.RF.Knock
 local ShopBuy = RS.RemoteServices.HalloweenShopService.RF.Purchase
+local BoostUse = RS.RemoteServices.BoostService.RF.Use
 local Travel = RS.RemoteServices.IslandService.RF.Travel
 local Enc    = RS.RemoteServices.EnchantService.RF
 local Tap    = RS.RemoteServices.TapService.RE.TapRequested
@@ -24,6 +25,7 @@ local AutoKnock = { enabled = false }
 local AutoEnchant = { enabled = false, slot = 1, wanted = {} }
 local AutoBoss = { enabled = false }
 local AutoShop = { enabled = false, wanted = {} }
+local AutoPotion = { enabled = false, wanted = {} }
 local AntiAFK = { enabled = false }
 local EggHub = { current = nil, autoHatch = true }
 local MenuBind = { key = "RightShift" }
@@ -103,6 +105,7 @@ local function snapshot()
         AutoEnchant = { enabled = AutoEnchant.enabled, slot = AutoEnchant.slot, wanted = AutoEnchant.wanted },
         AutoBoss = { enabled = AutoBoss.enabled },
         AutoShop = { enabled = AutoShop.enabled, wanted = AutoShop.wanted },
+        AutoPotion = { enabled = AutoPotion.enabled, wanted = AutoPotion.wanted },
         AntiAFK = { enabled = AntiAFK.enabled },
         EggHub = { current = EggHub.current },
         MenuBind = { key = MenuBind.key },
@@ -121,6 +124,10 @@ local function applyConfig(cfg)
     if cfg.AutoShop then
         set("AutoShop.enabled", cfg.AutoShop.enabled)
         AutoShop.wanted = cfg.AutoShop.wanted or {}
+    end
+    if cfg.AutoPotion then
+        set("AutoPotion.enabled", cfg.AutoPotion.enabled)
+        AutoPotion.wanted = cfg.AutoPotion.wanted or {}
     end
     if cfg.AntiAFK then set("AntiAFK.enabled", cfg.AntiAFK.enabled) end
     if cfg.EggHub then EggHub.current = cfg.EggHub.current end
@@ -922,6 +929,87 @@ task.spawn(function()
     end
 end)
 
+-- ================= POTIONS PAGE =================
+local POTIONS = {
+    { id = "Luck Potion I",        rarity = "Rare",      duration = 300, desc = "+10% Luck, 5 min" },
+    { id = "Luck Potion II",       rarity = "Epic",      duration = 900, desc = "+20% Luck, 15 min" },
+    { id = "Coins Potion I",       rarity = "Rare",      duration = 600, desc = "+15% Coins, 10 min" },
+    { id = "Coins Potion II",      rarity = "Epic",      duration = 900, desc = "+50% Coins, 15 min" },
+    { id = "Gems Potion I",        rarity = "Rare",      duration = 600, desc = "+50% Gems, 10 min" },
+    { id = "Gems Potion II",       rarity = "Epic",      duration = 900, desc = "+75% Gems, 15 min" },
+    { id = "Enchant Overclocker",  rarity = "Epic",      duration = 900, desc = "Enchant x2 speed, 15 min" },
+    { id = "Octo Incubator",       rarity = "Mythical",  duration = 900, desc = "Hatch 8 at once, 15 min" },
+}
+local POTION_RARITY_COLOR = {
+    Rare = C.rRare, Epic = C.rEpic, Legendary = C.rLegendary, Mythical = C.rMythical,
+}
+
+local pagePot = makePage("Potions")
+sectionHeader(pagePot, "AUTO-POTION")
+local potCard = card(pagePot)
+toggleRow(potCard, "Enabled", "Uses selected potions when their timer expires", false,
+    function(v) AutoPotion.enabled = v end, "AutoPotion.enabled")
+local potStatus, potDot = statusBar(pagePot)
+
+sectionHeader(pagePot, "WANTED POTIONS")
+local potList = card(pagePot)
+local potByRarity = { Rare = {}, Epic = {}, Mythical = {} }
+for _, p in ipairs(POTIONS) do
+    local bucket = potByRarity[p.rarity] or potByRarity.Epic
+    table.insert(bucket, p)
+end
+for _, rarity in ipairs({ "Mythical", "Epic", "Rare" }) do
+    local list = potByRarity[rarity]
+    if list and #list > 0 then
+        local body = dropdown(potList, rarity, POTION_RARITY_COLOR[rarity] or C.textDim)
+        for _, p in ipairs(list) do
+            local label = ("%s  ·  %s"):format(p.id, p.desc)
+            checkRow(body, label, POTION_RARITY_COLOR[rarity] or C.textDim,
+                function() return AutoPotion.wanted[p.id] end,
+                function(v) AutoPotion.wanted[p.id] = v or nil end)
+        end
+    end
+end
+
+-- Auto-potion loop
+task.spawn(function()
+    local lastUsed = {}
+    while true do
+        if AutoPotion.enabled then
+            local used, anyWanted = 0, false
+            for _, p in ipairs(POTIONS) do
+                if AutoPotion.wanted[p.id] and AutoPotion.enabled then
+                    anyWanted = true
+                    local lu = lastUsed[p.id] or 0
+                    -- Try again a few seconds before the previous dose expires
+                    if tick() - lu >= math.max(10, p.duration - 10) then
+                        setStatus(potStatus, potDot, ("using %s…"):format(p.id), C.accent2)
+                        local ok, res = pcall(function() return BoostUse:InvokeServer(p.id) end)
+                        if ok and res ~= false and res ~= nil then
+                            lastUsed[p.id] = tick(); used = used + 1
+                            task.wait(0.4)
+                        else
+                            -- Cooldown or missing — retry in 30s
+                            lastUsed[p.id] = tick() - (math.max(10, p.duration - 10) - 30)
+                        end
+                        task.wait(0.2)
+                    end
+                end
+            end
+            if not anyWanted then
+                setStatus(potStatus, potDot, "idle · select potions above", C.muted)
+            elseif used > 0 then
+                setStatus(potStatus, potDot, ("drank %d · waiting"):format(used), C.good)
+            else
+                setStatus(potStatus, potDot, "all active · waiting", C.textDim)
+            end
+            task.wait(5)
+        else
+            setStatus(potStatus, potDot, "idle", C.muted); task.wait(0.5)
+        end
+    end
+end)
+
 local pageEggs = makePage("Eggs")
 sectionHeader(pageEggs, "SELECT YOUR EGG")
 local eggCardWrap = card(pageEggs)
@@ -1097,6 +1185,7 @@ makeTB(autoCard, "my-config", getAutoload() or "", function(t) setAutoload(t) en
 
 makeTab("Halloween", "H")
 makeTab("Merchant", "🎃")
+makeTab("Potions", "🧪")
 makeTab("Eggs", "G")
 makeTab("Enchanting", "E")
 makeTab("Misc", "M")
