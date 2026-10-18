@@ -275,17 +275,8 @@ headerBtn(-80, "-", C.cardAlt, function()
 end)
 headerBtn(-42, "x", C.bad, function() gui:Destroy(); shadowLayer:Destroy() end)
 
--- Title gradient rotation (paused when minimized to save FPS)
-task.spawn(function()
-    local r = 0
-    while title.Parent do
-        if not minimized and body.Visible then
-            r = (r + 4) % 360
-            titleGrad.Rotation = r
-        end
-        task.wait(0.08)
-    end
-end)
+-- Static subtle angled gradient (no animation = cleaner look + zero FPS cost)
+titleGrad.Rotation = 25
 
 local sidebar = Instance.new("Frame", body)
 sidebar.Size = UDim2.new(0, 160, 1, 0); sidebar.BackgroundColor3 = C.sidebar; sidebar.BorderSizePixel = 0
@@ -353,14 +344,14 @@ end
 
 local function sectionHeader(parent, text)
     local wrap = Instance.new("Frame", parent); wrap.BackgroundTransparency = 1
-    wrap.Size = UDim2.new(1, 0, 0, 20)
-    local line = Instance.new("Frame", wrap); line.Size = UDim2.new(0, 3, 0, 14); line.Position = UDim2.new(0, 0, 0.5, -7)
+    wrap.Size = UDim2.new(1, 0, 0, 18)
+    local line = Instance.new("Frame", wrap); line.Size = UDim2.new(0, 2, 0, 12); line.Position = UDim2.new(0, 2, 0.5, -6)
     line.BackgroundColor3 = C.accent1; line.BorderSizePixel = 0
-    Instance.new("UICorner", line).CornerRadius = UDim.new(0, 2)
+    Instance.new("UICorner", line).CornerRadius = UDim.new(1, 0)
     local l = Instance.new("TextLabel", wrap); l.BackgroundTransparency = 1
-    l.Position = UDim2.new(0, 10, 0, 0); l.Size = UDim2.new(1, -10, 1, 0)
-    l.Text = text; l.TextColor3 = C.text
-    l.Font = Enum.Font.GothamBlack; l.TextSize = 11; l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Position = UDim2.new(0, 12, 0, 0); l.Size = UDim2.new(1, -12, 1, 0)
+    l.Text = text; l.TextColor3 = C.textDim
+    l.Font = Enum.Font.GothamBold; l.TextSize = 10; l.TextXAlignment = Enum.TextXAlignment.Left
 end
 
 local function card(parent)
@@ -569,6 +560,7 @@ end
 local function statusBar(parent)
     local f = Instance.new("Frame", parent); f.BackgroundColor3 = C.cardAlt; f.BorderSizePixel = 0
     f.Size = UDim2.new(1, 0, 0, 34); f.ClipsDescendants = true
+    f.Visible = false
     Instance.new("UICorner", f).CornerRadius = UDim.new(0, 8)
     local dot = Instance.new("Frame", f)
     dot.Size = UDim2.new(0, 8, 0, 8); dot.Position = UDim2.new(0, 14, 0.5, -4)
@@ -576,13 +568,17 @@ local function statusBar(parent)
     Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
     local l = Instance.new("TextLabel", f)
     l.BackgroundTransparency = 1; l.Position = UDim2.new(0, 30, 0, 0); l.Size = UDim2.new(1, -38, 1, 0)
-    l.Text = "idle"; l.TextColor3 = C.textDim; l.Font = Enum.Font.GothamMedium; l.TextSize = 11
+    l.Text = ""; l.TextColor3 = C.textDim; l.Font = Enum.Font.GothamMedium; l.TextSize = 11
     l.TextXAlignment = Enum.TextXAlignment.Left; l.TextTruncate = Enum.TextTruncate.AtEnd
     return l, dot
 end
 local function setStatus(label, dot, text, color)
-    if label then label.Text = text; label.TextColor3 = color or C.textDim end
-    if dot then dot.BackgroundColor3 = color or C.muted end
+    -- Hide the bar entirely when idle (empty text or "idle"); otherwise show it with content
+    local frame = label and label.Parent
+    local isIdle = not text or text == "" or text:lower():match("^idle")
+    if frame then frame.Visible = not isIdle end
+    if label and not isIdle then label.Text = text; label.TextColor3 = color or C.textDim end
+    if dot and not isIdle then dot.BackgroundColor3 = color or C.muted end
 end
 
 -- Hatch tracker + continuous auto-hatch loop
@@ -1062,12 +1058,25 @@ local iStatus, iDot = statusBar(pageRew)
 
 sectionHeader(pageRew, "AUTO-REDEEM CODES")
 local cCard = card(pageRew)
-toggleRow(cCard, "Enabled", "Tries every code below once", false,
+toggleRow(cCard, "Enabled", "Auto-fetches a maintained code list and tries each once", false,
     function(v) AutoCodes.enabled = v end, "AutoCodes.enabled")
-tinyLabel(cCard, "CODES (one per line)")
-makeTB(cCard, "code1\ncode2\n...", AutoCodes.codes,
-    function(t) AutoCodes.codes = t; AutoCodes.redeemed = {} end, "AutoCodes.codes")
 local codeStatus, codeDot = statusBar(pageRew)
+
+-- Fetch the maintained code list from the repo on startup
+local REMOTE_CODES = {}
+task.spawn(function()
+    local ok, body = pcall(function()
+        return game:HttpGet("https://raw.githubusercontent.com/sw7yzy/tap-sim/main/codes.txt?v=" .. tick())
+    end)
+    if ok and type(body) == "string" then
+        for line in body:gmatch("[^\r\n]+") do
+            local code = line:gsub("^%s+", ""):gsub("%s+$", "")
+            if code ~= "" and not code:match("^#") then
+                table.insert(REMOTE_CODES, code)
+            end
+        end
+    end
+end)
 
 -- Loops
 task.spawn(function()
@@ -1105,11 +1114,11 @@ end)
 
 task.spawn(function()
     while true do
-        if AutoCodes.enabled and AutoCodes.codes ~= "" then
+        if AutoCodes.enabled and #REMOTE_CODES > 0 then
             local newOk, newFail, already = 0, 0, 0
-            for line in (AutoCodes.codes or ""):gmatch("[^\r\n]+") do
-                local code = line:gsub("^%s+", ""):gsub("%s+$", "")
-                if code ~= "" and not AutoCodes.redeemed[code] then
+            for _, code in ipairs(REMOTE_CODES) do
+                if not AutoCodes.enabled then break end
+                if not AutoCodes.redeemed[code] then
                     local ok, res = pcall(function() return RedeemCode:InvokeServer(code) end)
                     AutoCodes.redeemed[code] = true
                     if ok and type(res) == "table" then
