@@ -196,71 +196,90 @@ if not parented then gui.Parent = lp:WaitForChild("PlayerGui") end
 local function tween(o, p, t, s) TS:Create(o, TweenInfo.new(t or 0.2, s or Enum.EasingStyle.Quint), p):Play() end
 
 local shadowLayer = Instance.new("Frame", gui)
-shadowLayer.Size = UDim2.new(0, 600, 0, 660); shadowLayer.Position = UDim2.new(0, 4, 0.06, 0)
+shadowLayer.Size = UDim2.new(0, 680, 0, 720); shadowLayer.Position = UDim2.new(0, 4, 0.04, 0)
 shadowLayer.BackgroundColor3 = C.accent1; shadowLayer.BackgroundTransparency = 0.9
 shadowLayer.BorderSizePixel = 0; shadowLayer.ZIndex = 0
 Instance.new("UICorner", shadowLayer).CornerRadius = UDim.new(0, 22)
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0, 580, 0, 640); main.Position = UDim2.new(0, 24, 0.06, 0)
+main.Size = UDim2.new(0, 660, 0, 700); main.Position = UDim2.new(0, 24, 0.04, 0)
 main.BackgroundColor3 = C.bg; main.BorderSizePixel = 0
 main.Active = true; main.Draggable = true; main.ZIndex = 1
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 16)
 main.ClipsDescendants = true
 local bgGrad = Instance.new("UIGradient", main)
-bgGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(18,14,32)), ColorSequenceKeypoint.new(1, Color3.fromRGB(8,8,16))})
+bgGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(26, 22, 38)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(14, 15, 22)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 16)),
+})
 bgGrad.Rotation = 135
 local ms = Instance.new("UIStroke", main); ms.Color = C.borderBri; ms.Thickness = 1; ms.Transparency = 0.75
 
 local header = Instance.new("Frame", main)
-header.Size = UDim2.new(1, 0, 0, 64); header.BackgroundColor3 = C.panel; header.BorderSizePixel = 0
+header.Size = UDim2.new(1, 0, 0, 72); header.BackgroundColor3 = C.panel; header.BorderSizePixel = 0
 Instance.new("UICorner", header).CornerRadius = UDim.new(0, 16)
 local hf = Instance.new("Frame", header); hf.Size = UDim2.new(1, 0, 0, 16); hf.Position = UDim2.new(0, 0, 1, -16)
 hf.BackgroundColor3 = C.panel; hf.BorderSizePixel = 0
 local hgrad = Instance.new("UIGradient", header)
-hgrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(30,24,46)), ColorSequenceKeypoint.new(1, C.panel)})
-hgrad.Rotation = 90
+hgrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(36, 28, 58)),
+    ColorSequenceKeypoint.new(0.6, Color3.fromRGB(22, 24, 36)),
+    ColorSequenceKeypoint.new(1, C.panel)
+})
+hgrad.Rotation = 110
 
--- Brand mark on the left
-local brandDot = Instance.new("Frame", header)
-brandDot.AnchorPoint = Vector2.new(0, 0.5); brandDot.Position = UDim2.new(0, 20, 0.5, 0)
-brandDot.Size = UDim2.new(0, 10, 0, 10); brandDot.BackgroundColor3 = C.accent1; brandDot.BorderSizePixel = 0
-Instance.new("UICorner", brandDot).CornerRadius = UDim.new(1, 0)
-local brandGlow = Instance.new("UIStroke", brandDot); brandGlow.Color = C.accent1; brandGlow.Thickness = 3; brandGlow.Transparency = 0.7
+-- Brand mark: diamond rotated square with gradient (looks intentional, not a stray dot)
+local brandWrap = Instance.new("Frame", header)
+brandWrap.AnchorPoint = Vector2.new(0, 0.5); brandWrap.Position = UDim2.new(0, 22, 0.5, 0)
+brandWrap.Size = UDim2.new(0, 28, 0, 28); brandWrap.BackgroundTransparency = 1
+local brand = Instance.new("Frame", brandWrap)
+brand.AnchorPoint = Vector2.new(0.5, 0.5); brand.Position = UDim2.new(0.5, 0, 0.5, 0)
+brand.Size = UDim2.new(0, 20, 0, 20); brand.Rotation = 45
+brand.BackgroundColor3 = C.accent1; brand.BorderSizePixel = 0
+Instance.new("UICorner", brand).CornerRadius = UDim.new(0, 5)
+local bg = Instance.new("UIGradient", brand)
+bg.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, C.accent3), ColorSequenceKeypoint.new(1, C.accent1)})
+bg.Rotation = 135
+local brandGlow = Instance.new("UIStroke", brand); brandGlow.Color = C.accent1; brandGlow.Thickness = 4; brandGlow.Transparency = 0.85
 
+-- Title (centered, big, premium)
 local title = Instance.new("TextLabel", header)
-title.BackgroundTransparency = 1; title.AnchorPoint = Vector2.new(0, 0.5)
-title.Position = UDim2.new(0, 40, 0.5, -8); title.Size = UDim2.new(0, 300, 0, 20)
-title.Text = "TAP SIM REBORN"; title.TextColor3 = C.text
-title.Font = Enum.Font.GothamBlack; title.TextSize = 15
-title.TextXAlignment = Enum.TextXAlignment.Left; title.TextYAlignment = Enum.TextYAlignment.Center
+title.BackgroundTransparency = 1; title.AnchorPoint = Vector2.new(0.5, 0.5)
+title.Position = UDim2.new(0.5, 0, 0.5, 0); title.Size = UDim2.new(0, 360, 0, 32)
+title.Text = "TAP  SIM  REBORN"; title.TextColor3 = C.text
+title.Font = Enum.Font.GothamBlack; title.TextSize = 20
+title.TextXAlignment = Enum.TextXAlignment.Center; title.TextYAlignment = Enum.TextYAlignment.Center
 local titleGrad = Instance.new("UIGradient", title)
 titleGrad.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0, Color3.fromRGB(255,255,255)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(200,170,255)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(210,185,255)),
     ColorSequenceKeypoint.new(1, Color3.fromRGB(255,255,255)),
 })
--- Subtitle: current page name (updated by switchTo)
-local pageLabel = Instance.new("TextLabel", header)
-pageLabel.BackgroundTransparency = 1; pageLabel.AnchorPoint = Vector2.new(0, 0.5)
-pageLabel.Position = UDim2.new(0, 40, 0.5, 10); pageLabel.Size = UDim2.new(0, 300, 0, 14)
-pageLabel.Text = ""; pageLabel.TextColor3 = C.muted
-pageLabel.Font = Enum.Font.GothamMedium; pageLabel.TextSize = 10
-pageLabel.TextXAlignment = Enum.TextXAlignment.Left; pageLabel.TextYAlignment = Enum.TextYAlignment.Center
 
--- Bottom accent line spans full width (gradient fades out at edges)
+-- Hidden page label (kept as upvalue reference for switchTo compatibility; invisible)
+local pageLabel = Instance.new("TextLabel", header)
+pageLabel.BackgroundTransparency = 1; pageLabel.Visible = false
+pageLabel.Text = ""; pageLabel.Size = UDim2.new(0, 0, 0, 0)
+
+-- Full-width accent line fading at edges (sharper, more visible color)
 local accentLine = Instance.new("Frame", header)
-accentLine.Size = UDim2.new(1, 0, 0, 1); accentLine.Position = UDim2.new(0, 0, 1, -1)
+accentLine.Size = UDim2.new(1, -32, 0, 2); accentLine.Position = UDim2.new(0, 16, 1, -2)
 accentLine.BackgroundColor3 = C.accent1; accentLine.BorderSizePixel = 0
+Instance.new("UICorner", accentLine).CornerRadius = UDim.new(1, 0)
 local lineGrad = Instance.new("UIGradient", accentLine)
 lineGrad.Transparency = NumberSequence.new({
     NumberSequenceKeypoint.new(0,    1),
-    NumberSequenceKeypoint.new(0.1,  0.3),
+    NumberSequenceKeypoint.new(0.15, 0.1),
     NumberSequenceKeypoint.new(0.5,  0),
-    NumberSequenceKeypoint.new(0.9,  0.3),
+    NumberSequenceKeypoint.new(0.85, 0.1),
     NumberSequenceKeypoint.new(1,    1),
 })
-lineGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, C.accent1), ColorSequenceKeypoint.new(0.5, C.accent3), ColorSequenceKeypoint.new(1, C.accent2)})
+lineGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, C.accent2),
+    ColorSequenceKeypoint.new(0.5, C.accent1),
+    ColorSequenceKeypoint.new(1, C.accent3)
+})
 
 local function headerBtn(x, text, hoverColor, onClick)
     local b = Instance.new("TextButton", header)
@@ -278,7 +297,7 @@ end
 
 -- body built BEFORE minimize button so we can reference it
 local body = Instance.new("Frame", main)
-body.Position = UDim2.new(0, 12, 0, 72); body.Size = UDim2.new(1, -24, 1, -84)
+body.Position = UDim2.new(0, 14, 0, 82); body.Size = UDim2.new(1, -28, 1, -96)
 body.BackgroundTransparency = 1
 
 local minimized = false
@@ -287,18 +306,16 @@ headerBtn(-80, "–", C.cardAlt, function()
     minimized = not minimized
     if minimized then
         body.Visible = false
-        tween(main, { Size = UDim2.new(0, 280, 0, 48) }, 0.25)
+        tween(main, { Size = UDim2.new(0, 320, 0, 52) }, 0.25)
         tween(header, { Size = UDim2.new(1, 0, 1, 0) }, 0.25)
         tween(shadowLayer, { BackgroundTransparency = 1 }, 0.2)
-        tween(title, { TextSize = 13 }, 0.2)
-        pageLabel.Visible = false
+        tween(title, { TextSize = 14 }, 0.2)
         tween(accentLine, { BackgroundTransparency = 1 }, 0.2)
     else
         tween(main, { Size = savedMainSize }, 0.25)
-        tween(header, { Size = UDim2.new(1, 0, 0, 64) }, 0.25)
+        tween(header, { Size = UDim2.new(1, 0, 0, 72) }, 0.25)
         tween(shadowLayer, { BackgroundTransparency = 0.9 }, 0.2)
-        tween(title, { TextSize = 15 }, 0.2)
-        pageLabel.Visible = true
+        tween(title, { TextSize = 20 }, 0.2)
         tween(accentLine, { BackgroundTransparency = 0 }, 0.2)
         task.wait(0.25)
         body.Visible = true
@@ -310,17 +327,29 @@ headerBtn(-42, "×", C.bad, function() gui:Destroy(); shadowLayer:Destroy() end)
 titleGrad.Rotation = 25
 
 local sidebar = Instance.new("Frame", body)
-sidebar.Size = UDim2.new(0, 160, 1, 0); sidebar.BackgroundColor3 = C.sidebar; sidebar.BorderSizePixel = 0
-Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 12)
-local sStroke = Instance.new("UIStroke", sidebar); sStroke.Color = C.border; sStroke.Thickness = 1; sStroke.Transparency = 0.85
+sidebar.Size = UDim2.new(0, 168, 1, 0); sidebar.BackgroundColor3 = C.sidebar; sidebar.BorderSizePixel = 0
+Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 14)
+local sStroke = Instance.new("UIStroke", sidebar); sStroke.Color = C.border; sStroke.Thickness = 1; sStroke.Transparency = 0.75
 local sp = Instance.new("UIPadding", sidebar)
-sp.PaddingTop = UDim.new(0, 12); sp.PaddingLeft = UDim.new(0, 10); sp.PaddingRight = UDim.new(0, 10); sp.PaddingBottom = UDim.new(0, 12)
-local sl = Instance.new("UIListLayout", sidebar); sl.Padding = UDim.new(0, 5); sl.SortOrder = Enum.SortOrder.LayoutOrder
+sp.PaddingTop = UDim.new(0, 14); sp.PaddingLeft = UDim.new(0, 10); sp.PaddingRight = UDim.new(0, 10); sp.PaddingBottom = UDim.new(0, 14)
+local sl = Instance.new("UIListLayout", sidebar); sl.Padding = UDim.new(0, 4); sl.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Nav section label at top of sidebar
+local navLabel = Instance.new("TextLabel", sidebar)
+navLabel.LayoutOrder = -2; navLabel.BackgroundTransparency = 1
+navLabel.Size = UDim2.new(1, 0, 0, 16)
+navLabel.Text = "NAVIGATION"; navLabel.TextColor3 = C.muted
+navLabel.Font = Enum.Font.GothamBold; navLabel.TextSize = 9
+navLabel.TextXAlignment = Enum.TextXAlignment.Left
+local navPad = Instance.new("UIPadding", navLabel); navPad.PaddingLeft = UDim.new(0, 6)
+local navSpacer = Instance.new("Frame", sidebar)
+navSpacer.LayoutOrder = -1; navSpacer.BackgroundTransparency = 1
+navSpacer.Size = UDim2.new(1, 0, 0, 4)
 
 local content = Instance.new("Frame", body)
-content.Position = UDim2.new(0, 170, 0, 0); content.Size = UDim2.new(1, -170, 1, 0)
+content.Position = UDim2.new(0, 180, 0, 0); content.Size = UDim2.new(1, -180, 1, 0)
 content.BackgroundColor3 = C.panel; content.BorderSizePixel = 0
-Instance.new("UICorner", content).CornerRadius = UDim.new(0, 12)
+Instance.new("UICorner", content).CornerRadius = UDim.new(0, 14)
 content.ClipsDescendants = true
 local cStroke = Instance.new("UIStroke", content); cStroke.Color = C.border; cStroke.Thickness = 1; cStroke.Transparency = 0.85
 
