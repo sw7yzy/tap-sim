@@ -870,11 +870,18 @@ task.spawn(function()
         return false
     end
     local function findCandyText()
+        -- Preferred: HalloweenShop menu's "Candy" label (shows formatted total e.g. "7,609")
+        local tabs = lp.PlayerGui:FindFirstChild("Tabs")
+        local hs   = tabs and tabs:FindFirstChild("HalloweenShop")
+        local menu = hs and hs:FindFirstChild("Menu")
+        local candy = menu and menu:FindFirstChild("Candy")
+        if candy and candy:IsA("TextLabel") then return candy end
+        -- Fallback: scan anything in a candy-named ancestor
         local best, bestScore = nil, -1
         for _, d in ipairs(lp.PlayerGui:GetDescendants()) do
-            if d:IsA("TextLabel") and d.Text and d.Text:match("%d") then
+            if d:IsA("TextLabel") and d.Text and d.Text:match("[%d,]") and not d.Text:find("/") then
                 if hasAncestorNamed(d, "candycorn") or hasAncestorNamed(d, "candy") then
-                    local score = (d.Visible and 10 or 0) + #d.Text
+                    local score = (d.Visible and 100 or 0) + #d.Text
                     if score > bestScore then best, bestScore = d, score end
                 end
             end
