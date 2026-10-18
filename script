@@ -311,13 +311,13 @@ titleGrad.Rotation = 25
 
 local sidebar = Instance.new("Frame", body)
 sidebar.Size = UDim2.new(0, 150, 1, 0); sidebar.BackgroundTransparency = 1; sidebar.BorderSizePixel = 0
--- Right-edge hairline divider between sidebar and content
-local sDivider = Instance.new("Frame", sidebar)
-sDivider.Size = UDim2.new(0, 1, 1, 0); sDivider.Position = UDim2.new(1, 0, 0, 0)
-sDivider.BackgroundColor3 = C.border; sDivider.BorderSizePixel = 0
 local sp = Instance.new("UIPadding", sidebar)
 sp.PaddingTop = UDim.new(0, 10); sp.PaddingLeft = UDim.new(0, 6); sp.PaddingRight = UDim.new(0, 6); sp.PaddingBottom = UDim.new(0, 10)
 local sl = Instance.new("UIListLayout", sidebar); sl.Padding = UDim.new(0, 2); sl.SortOrder = Enum.SortOrder.LayoutOrder
+-- Right-edge hairline divider between sidebar and content (sibling of sidebar so it's outside the list layout)
+local sDivider = Instance.new("Frame", body)
+sDivider.Size = UDim2.new(0, 1, 1, 0); sDivider.Position = UDim2.new(0, 150, 0, 0)
+sDivider.BackgroundColor3 = C.border; sDivider.BorderSizePixel = 0
 
 -- Nav section label (small serif eyebrow)
 local navLabel = Instance.new("TextLabel", sidebar)
