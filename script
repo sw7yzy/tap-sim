@@ -218,26 +218,48 @@ Instance.new("UICorner", header).CornerRadius = UDim.new(0, 16)
 local hf = Instance.new("Frame", header); hf.Size = UDim2.new(1, 0, 0, 16); hf.Position = UDim2.new(0, 0, 1, -16)
 hf.BackgroundColor3 = C.panel; hf.BorderSizePixel = 0
 local hgrad = Instance.new("UIGradient", header)
-hgrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(28,20,46)), ColorSequenceKeypoint.new(1, C.panel)})
+hgrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(30,24,46)), ColorSequenceKeypoint.new(1, C.panel)})
 hgrad.Rotation = 90
 
+-- Brand mark on the left
+local brandDot = Instance.new("Frame", header)
+brandDot.AnchorPoint = Vector2.new(0, 0.5); brandDot.Position = UDim2.new(0, 20, 0.5, 0)
+brandDot.Size = UDim2.new(0, 10, 0, 10); brandDot.BackgroundColor3 = C.accent1; brandDot.BorderSizePixel = 0
+Instance.new("UICorner", brandDot).CornerRadius = UDim.new(1, 0)
+local brandGlow = Instance.new("UIStroke", brandDot); brandGlow.Color = C.accent1; brandGlow.Thickness = 3; brandGlow.Transparency = 0.7
+
 local title = Instance.new("TextLabel", header)
-title.BackgroundTransparency = 1; title.Size = UDim2.new(1, 0, 1, 0)
+title.BackgroundTransparency = 1; title.AnchorPoint = Vector2.new(0, 0.5)
+title.Position = UDim2.new(0, 40, 0.5, -8); title.Size = UDim2.new(0, 300, 0, 20)
 title.Text = "TAP SIM REBORN"; title.TextColor3 = C.text
-title.Font = Enum.Font.GothamBlack; title.TextSize = 20
-title.TextXAlignment = Enum.TextXAlignment.Center; title.TextYAlignment = Enum.TextYAlignment.Center
+title.Font = Enum.Font.GothamBlack; title.TextSize = 15
+title.TextXAlignment = Enum.TextXAlignment.Left; title.TextYAlignment = Enum.TextYAlignment.Center
 local titleGrad = Instance.new("UIGradient", title)
 titleGrad.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0, Color3.fromRGB(255,255,255)),
     ColorSequenceKeypoint.new(0.5, Color3.fromRGB(200,170,255)),
     ColorSequenceKeypoint.new(1, Color3.fromRGB(255,255,255)),
 })
+-- Subtitle: current page name (updated by switchTo)
+local pageLabel = Instance.new("TextLabel", header)
+pageLabel.BackgroundTransparency = 1; pageLabel.AnchorPoint = Vector2.new(0, 0.5)
+pageLabel.Position = UDim2.new(0, 40, 0.5, 10); pageLabel.Size = UDim2.new(0, 300, 0, 14)
+pageLabel.Text = ""; pageLabel.TextColor3 = C.muted
+pageLabel.Font = Enum.Font.GothamMedium; pageLabel.TextSize = 10
+pageLabel.TextXAlignment = Enum.TextXAlignment.Left; pageLabel.TextYAlignment = Enum.TextYAlignment.Center
+
+-- Bottom accent line spans full width (gradient fades out at edges)
 local accentLine = Instance.new("Frame", header)
-accentLine.Size = UDim2.new(0, 60, 0, 2)
-accentLine.Position = UDim2.new(0.5, -30, 1, -18)
+accentLine.Size = UDim2.new(1, 0, 0, 1); accentLine.Position = UDim2.new(0, 0, 1, -1)
 accentLine.BackgroundColor3 = C.accent1; accentLine.BorderSizePixel = 0
-Instance.new("UICorner", accentLine).CornerRadius = UDim.new(1, 0)
 local lineGrad = Instance.new("UIGradient", accentLine)
+lineGrad.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0,    1),
+    NumberSequenceKeypoint.new(0.1,  0.3),
+    NumberSequenceKeypoint.new(0.5,  0),
+    NumberSequenceKeypoint.new(0.9,  0.3),
+    NumberSequenceKeypoint.new(1,    1),
+})
 lineGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, C.accent1), ColorSequenceKeypoint.new(0.5, C.accent3), ColorSequenceKeypoint.new(1, C.accent2)})
 
 local function headerBtn(x, text, hoverColor, onClick)
@@ -265,17 +287,19 @@ headerBtn(-80, "–", C.cardAlt, function()
     minimized = not minimized
     if minimized then
         body.Visible = false
-        tween(main, { Size = UDim2.new(0, 300, 0, 48) }, 0.25)
+        tween(main, { Size = UDim2.new(0, 280, 0, 48) }, 0.25)
         tween(header, { Size = UDim2.new(1, 0, 1, 0) }, 0.25)
         tween(shadowLayer, { BackgroundTransparency = 1 }, 0.2)
-        tween(title, { TextSize = 14 }, 0.2)
-        tween(accentLine, { Size = UDim2.new(0, 0, 0, 2) }, 0.2)
+        tween(title, { TextSize = 13 }, 0.2)
+        pageLabel.Visible = false
+        tween(accentLine, { BackgroundTransparency = 1 }, 0.2)
     else
         tween(main, { Size = savedMainSize }, 0.25)
         tween(header, { Size = UDim2.new(1, 0, 0, 64) }, 0.25)
         tween(shadowLayer, { BackgroundTransparency = 0.9 }, 0.2)
-        tween(title, { TextSize = 20 }, 0.2)
-        tween(accentLine, { Size = UDim2.new(0, 60, 0, 2) }, 0.2)
+        tween(title, { TextSize = 15 }, 0.2)
+        pageLabel.Visible = true
+        tween(accentLine, { BackgroundTransparency = 0 }, 0.2)
         task.wait(0.25)
         body.Visible = true
     end
@@ -305,13 +329,14 @@ local function switchTo(name)
     for n, p in pairs(pages) do p.Visible = (n == name) end
     for n, b in pairs(tabButtons) do
         local active = (n == name)
-        tween(b.frame, { BackgroundColor3 = active and C.card or C.sidebar }, 0.15)
-        tween(b.stroke, { Transparency = active and 0.4 or 1 }, 0.15)
+        tween(b.frame, { BackgroundColor3 = active and C.accent1 or C.sidebar, BackgroundTransparency = active and 0.82 or 0 }, 0.15)
+        tween(b.stroke, { Transparency = active and 0.3 or 1, Color = active and C.accent1 or C.border }, 0.15)
         b.label.TextColor3 = active and C.text or C.textDim
-        b.icon.TextColor3 = active and C.text or C.muted
-        tween(b.bar, { BackgroundTransparency = active and 0 or 1, Size = active and UDim2.new(0,3,0,22) or UDim2.new(0,3,0,0) }, 0.2)
+        b.icon.TextColor3 = active and C.accent1 or C.muted
+        tween(b.bar, { BackgroundTransparency = active and 0 or 1, Size = active and UDim2.new(0,3,0,24) or UDim2.new(0,3,0,0) }, 0.2)
     end
     currentPage = name
+    if pageLabel then pageLabel.Text = "/ " .. name:upper() end
 end
 
 local tabOrder = 0
@@ -368,7 +393,14 @@ local function card(parent)
     c.Size = UDim2.new(1, 0, 0, 40); c.AutomaticSize = Enum.AutomaticSize.Y
     c.ClipsDescendants = true
     Instance.new("UICorner", c).CornerRadius = UDim.new(0, 12)
-    local st = Instance.new("UIStroke", c); st.Color = C.border; st.Thickness = 1; st.Transparency = 0.8
+    -- Subtle top-to-bottom lift gradient so cards read as elevated surfaces
+    local grad = Instance.new("UIGradient", c)
+    grad.Rotation = 90
+    grad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(34, 38, 50)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(23, 26, 34)),
+    })
+    local st = Instance.new("UIStroke", c); st.Color = C.borderBri; st.Thickness = 1; st.Transparency = 0.7
     local pd = Instance.new("UIPadding", c)
     pd.PaddingTop = UDim.new(0, 14); pd.PaddingBottom = UDim.new(0, 14); pd.PaddingLeft = UDim.new(0, 14); pd.PaddingRight = UDim.new(0, 14)
     local l = Instance.new("UIListLayout", c); l.Padding = UDim.new(0, 10); l.SortOrder = Enum.SortOrder.LayoutOrder
