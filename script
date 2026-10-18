@@ -636,34 +636,35 @@ pumpkin.Text = "🎃"; pumpkin.TextSize = 30; pumpkin.Font = Enum.Font.GothamBol
 pumpkin.TextColor3 = Color3.fromRGB(255, 160, 60); pumpkin.TextXAlignment = Enum.TextXAlignment.Center
 pumpkin.TextYAlignment = Enum.TextYAlignment.Center
 -- Pill: top-right, compact
-local PILL_W = 108
+local PILL_W = 96
 local candyPill = Instance.new("Frame", banner)
-candyPill.AnchorPoint = Vector2.new(1, 0); candyPill.Position = UDim2.new(1, -12, 0, 10)
-candyPill.Size = UDim2.new(0, PILL_W, 0, 30); candyPill.BackgroundColor3 = C.cardAlt; candyPill.BorderSizePixel = 0
+candyPill.AnchorPoint = Vector2.new(1, 0); candyPill.Position = UDim2.new(1, -10, 0, 8)
+candyPill.Size = UDim2.new(0, PILL_W, 0, 28); candyPill.BackgroundColor3 = C.cardAlt; candyPill.BorderSizePixel = 0
 Instance.new("UICorner", candyPill).CornerRadius = UDim.new(1, 0)
 local cps = Instance.new("UIStroke", candyPill); cps.Color = C.accent3; cps.Thickness = 1; cps.Transparency = 0.3
 local candyIcon = Instance.new("ImageLabel", candyPill)
-candyIcon.BackgroundTransparency = 1; candyIcon.Position = UDim2.new(0, 4, 0.5, -11); candyIcon.Size = UDim2.new(0, 22, 0, 22)
+candyIcon.BackgroundTransparency = 1; candyIcon.Position = UDim2.new(0, 4, 0.5, -10); candyIcon.Size = UDim2.new(0, 20, 0, 20)
 candyIcon.Image = ""; candyIcon.ScaleType = Enum.ScaleType.Fit
 local candyAmt = Instance.new("TextLabel", candyPill)
-candyAmt.BackgroundTransparency = 1; candyAmt.Position = UDim2.new(0, 30, 0, 0); candyAmt.Size = UDim2.new(1, -38, 1, 0)
-candyAmt.Text = "—"; candyAmt.TextColor3 = C.text; candyAmt.Font = Enum.Font.GothamBold; candyAmt.TextSize = 13
+candyAmt.BackgroundTransparency = 1; candyAmt.Position = UDim2.new(0, 28, 0, 0); candyAmt.Size = UDim2.new(1, -34, 1, 0)
+candyAmt.Text = "—"; candyAmt.TextColor3 = C.text; candyAmt.Font = Enum.Font.GothamBold; candyAmt.TextSize = 12
 candyAmt.TextXAlignment = Enum.TextXAlignment.Left
 
--- Title row: pumpkin + title; subtitles below span full width
+-- Title row (next to pumpkin, pill is top-right)
 local bTitle = Instance.new("TextLabel", banner)
-bTitle.BackgroundTransparency = 1; bTitle.Position = UDim2.new(0, 86, 0, 10); bTitle.Size = UDim2.new(1, -86 - PILL_W - 24, 0, 24)
-bTitle.Text = "HALLOWEEN MERCHANT"; bTitle.TextColor3 = C.text
-bTitle.Font = Enum.Font.GothamBold; bTitle.TextSize = 17; bTitle.TextXAlignment = Enum.TextXAlignment.Left
+bTitle.BackgroundTransparency = 1; bTitle.Position = UDim2.new(0, 82, 0, 10); bTitle.Size = UDim2.new(1, -82 - PILL_W - 20, 0, 22)
+bTitle.Text = "MERCHANT"; bTitle.TextColor3 = C.text
+bTitle.Font = Enum.Font.GothamBold; bTitle.TextSize = 18; bTitle.TextXAlignment = Enum.TextXAlignment.Left
 bTitle.TextTruncate = Enum.TextTruncate.AtEnd
+-- Full-width subtitle rows below
 local bSub = Instance.new("TextLabel", banner)
-bSub.BackgroundTransparency = 1; bSub.Position = UDim2.new(0, 18, 0, 48); bSub.Size = UDim2.new(1, -32, 0, 16)
-bSub.Text = "auto-buys selected items when affordable"
+bSub.BackgroundTransparency = 1; bSub.Position = UDim2.new(0, 16, 0, 46); bSub.Size = UDim2.new(1, -28, 0, 16)
+bSub.Text = "auto-buy halloween shop items"
 bSub.TextColor3 = C.textDim; bSub.Font = Enum.Font.GothamMedium; bSub.TextSize = 11
 bSub.TextXAlignment = Enum.TextXAlignment.Left; bSub.TextTruncate = Enum.TextTruncate.AtEnd
 local bHint = Instance.new("TextLabel", banner)
-bHint.BackgroundTransparency = 1; bHint.Position = UDim2.new(0, 18, 0, 66); bHint.Size = UDim2.new(1, -32, 0, 14)
-bHint.Text = "respects daily limits · retries on failure"
+bHint.BackgroundTransparency = 1; bHint.Position = UDim2.new(0, 16, 0, 64); bHint.Size = UDim2.new(1, -28, 0, 14)
+bHint.Text = "respects daily limits"
 bHint.TextColor3 = C.muted; bHint.Font = Enum.Font.Gotham; bHint.TextSize = 10
 bHint.TextXAlignment = Enum.TextXAlignment.Left; bHint.TextTruncate = Enum.TextTruncate.AtEnd
 
@@ -860,39 +861,45 @@ end)
 
 -- Candy counter + icon: mirror the game's own CandyCorn display
 task.spawn(function()
-    local function getCandyFrame()
-        local game_ = lp.PlayerGui:FindFirstChild("Game")
-        local left = game_ and game_:FindFirstChild("Left")
-        return left and left:FindFirstChild("CandyCorn")
-    end
-    local function findIn(root, class)
-        if not root then return nil end
-        for _, d in ipairs(root:GetDescendants()) do
-            if d:IsA(class) and (class ~= "ImageLabel" or d.Image ~= "") then
-                return d
-            end
+    local function hasAncestorNamed(inst, needle)
+        local p = inst
+        while p and p ~= game do
+            if type(p.Name) == "string" and p.Name:lower():find(needle, 1, true) then return true end
+            p = p.Parent
         end
+        return false
     end
-    local function pickCandyText(frame)
-        -- Prefer the TextLabel with digits in it
-        local best, bestLen = nil, -1
-        for _, d in ipairs(frame:GetDescendants()) do
+    local function findCandyText()
+        local best, bestScore = nil, -1
+        for _, d in ipairs(lp.PlayerGui:GetDescendants()) do
             if d:IsA("TextLabel") and d.Text and d.Text:match("%d") then
-                if #d.Text > bestLen then best, bestLen = d, #d.Text end
+                if hasAncestorNamed(d, "candycorn") or hasAncestorNamed(d, "candy") then
+                    local score = (d.Visible and 10 or 0) + #d.Text
+                    if score > bestScore then best, bestScore = d, score end
+                end
             end
         end
         return best
     end
-    local img, txtRef
-    while true do
-        local frame = getCandyFrame()
-        if frame then
-            if candyIcon.Image == "" then
-                local i = findIn(frame, "ImageLabel") or findIn(frame, "ImageButton")
-                if i then candyIcon.Image = i.Image end
+    local function findCandyImage()
+        for _, d in ipairs(lp.PlayerGui:GetDescendants()) do
+            if (d:IsA("ImageLabel") or d:IsA("ImageButton")) and d.Image ~= "" then
+                if hasAncestorNamed(d, "candycorn") or d.Name:lower():find("candy") then
+                    return d.Image
+                end
             end
-            if not txtRef or not txtRef.Parent then txtRef = pickCandyText(frame) end
-            if txtRef then candyAmt.Text = txtRef.Text end
+        end
+    end
+    local txtRef
+    while true do
+        if candyIcon.Image == "" then
+            local i = findCandyImage(); if i then candyIcon.Image = i end
+        end
+        if not txtRef or not txtRef.Parent then txtRef = findCandyText() end
+        if txtRef then
+            candyAmt.Text = txtRef.Text
+        else
+            candyAmt.Text = "?"
         end
         task.wait(0.5)
     end
