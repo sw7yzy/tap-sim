@@ -71,15 +71,15 @@ local TIER_COLORS = {
 }
 
 local C = {
-    bg = Color3.fromRGB(10,10,18), sidebar = Color3.fromRGB(14,14,24),
-    panel = Color3.fromRGB(18,18,30), card = Color3.fromRGB(24,24,38),
-    cardAlt = Color3.fromRGB(32,32,48), hover = Color3.fromRGB(44,44,68),
-    border = Color3.fromRGB(50,50,80), borderBri = Color3.fromRGB(80,80,130),
-    accent1 = Color3.fromRGB(170,90,255), accent2 = Color3.fromRGB(80,180,255),
-    accent3 = Color3.fromRGB(255,100,200),
-    text = Color3.fromRGB(245,245,252), textDim = Color3.fromRGB(180,180,210),
-    muted = Color3.fromRGB(110,110,140),
-    good = Color3.fromRGB(100,230,150), bad = Color3.fromRGB(255,90,110), warn = Color3.fromRGB(255,190,90),
+    bg = Color3.fromRGB(13, 15, 20),  sidebar = Color3.fromRGB(17, 19, 26),
+    panel = Color3.fromRGB(20, 23, 30), card = Color3.fromRGB(27, 30, 39),
+    cardAlt = Color3.fromRGB(34, 38, 49), hover = Color3.fromRGB(41, 46, 60),
+    border = Color3.fromRGB(45, 50, 65), borderBri = Color3.fromRGB(75, 82, 102),
+    accent1 = Color3.fromRGB(155,108,255), accent2 = Color3.fromRGB(96,180,255),
+    accent3 = Color3.fromRGB(255,112,193),
+    text = Color3.fromRGB(240,243,250), textDim = Color3.fromRGB(170,178,195),
+    muted = Color3.fromRGB(100,108,125),
+    good = Color3.fromRGB(90,220,150), bad = Color3.fromRGB(255,100,115), warn = Color3.fromRGB(255,190,90),
     rCommon=Color3.fromRGB(170,170,180), rRare=Color3.fromRGB(90,200,255),
     rEpic=Color3.fromRGB(190,100,230), rLegendary=Color3.fromRGB(255,185,70),
     rMythical=Color3.fromRGB(255,80,160), rSecret=Color3.fromRGB(255,100,110),
@@ -197,7 +197,7 @@ local function tween(o, p, t, s) TS:Create(o, TweenInfo.new(t or 0.2, s or Enum.
 
 local shadowLayer = Instance.new("Frame", gui)
 shadowLayer.Size = UDim2.new(0, 600, 0, 660); shadowLayer.Position = UDim2.new(0, 4, 0.06, 0)
-shadowLayer.BackgroundColor3 = C.accent1; shadowLayer.BackgroundTransparency = 0.88
+shadowLayer.BackgroundColor3 = C.accent1; shadowLayer.BackgroundTransparency = 0.9
 shadowLayer.BorderSizePixel = 0; shadowLayer.ZIndex = 0
 Instance.new("UICorner", shadowLayer).CornerRadius = UDim.new(0, 22)
 
@@ -210,7 +210,7 @@ main.ClipsDescendants = true
 local bgGrad = Instance.new("UIGradient", main)
 bgGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(18,14,32)), ColorSequenceKeypoint.new(1, Color3.fromRGB(8,8,16))})
 bgGrad.Rotation = 135
-local ms = Instance.new("UIStroke", main); ms.Color = C.borderBri; ms.Thickness = 1; ms.Transparency = 0.5
+local ms = Instance.new("UIStroke", main); ms.Color = C.borderBri; ms.Thickness = 1; ms.Transparency = 0.75
 
 local header = Instance.new("Frame", main)
 header.Size = UDim2.new(1, 0, 0, 64); header.BackgroundColor3 = C.panel; header.BorderSizePixel = 0
@@ -242,7 +242,8 @@ lineGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, C.accent1), Col
 
 local function headerBtn(x, text, hoverColor, onClick)
     local b = Instance.new("TextButton", header)
-    b.Size = UDim2.new(0, 32, 0, 32); b.Position = UDim2.new(1, x, 0, 16)
+    b.Size = UDim2.new(0, 30, 0, 30)
+    b.AnchorPoint = Vector2.new(0, 0.5); b.Position = UDim2.new(1, x, 0.5, 0)
     b.BackgroundColor3 = C.card; b.Text = text; b.TextColor3 = C.textDim
     b.Font = Enum.Font.GothamBold; b.TextSize = 16; b.AutoButtonColor = false
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
@@ -260,20 +261,26 @@ body.BackgroundTransparency = 1
 
 local minimized = false
 local savedMainSize = main.Size
-headerBtn(-80, "-", C.cardAlt, function()
+headerBtn(-80, "–", C.cardAlt, function()
     minimized = not minimized
     if minimized then
         body.Visible = false
-        tween(main, { Size = UDim2.new(0, 580, 0, 64) }, 0.25)
+        tween(main, { Size = UDim2.new(0, 300, 0, 48) }, 0.25)
+        tween(header, { Size = UDim2.new(1, 0, 1, 0) }, 0.25)
         tween(shadowLayer, { BackgroundTransparency = 1 }, 0.2)
+        tween(title, { TextSize = 14 }, 0.2)
+        tween(accentLine, { Size = UDim2.new(0, 0, 0, 2) }, 0.2)
     else
         tween(main, { Size = savedMainSize }, 0.25)
-        tween(shadowLayer, { BackgroundTransparency = 0.88 }, 0.2)
+        tween(header, { Size = UDim2.new(1, 0, 0, 64) }, 0.25)
+        tween(shadowLayer, { BackgroundTransparency = 0.9 }, 0.2)
+        tween(title, { TextSize = 20 }, 0.2)
+        tween(accentLine, { Size = UDim2.new(0, 60, 0, 2) }, 0.2)
         task.wait(0.25)
         body.Visible = true
     end
 end)
-headerBtn(-42, "x", C.bad, function() gui:Destroy(); shadowLayer:Destroy() end)
+headerBtn(-42, "×", C.bad, function() gui:Destroy(); shadowLayer:Destroy() end)
 
 -- Static subtle angled gradient (no animation = cleaner look + zero FPS cost)
 titleGrad.Rotation = 25
@@ -281,7 +288,7 @@ titleGrad.Rotation = 25
 local sidebar = Instance.new("Frame", body)
 sidebar.Size = UDim2.new(0, 160, 1, 0); sidebar.BackgroundColor3 = C.sidebar; sidebar.BorderSizePixel = 0
 Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 12)
-local sStroke = Instance.new("UIStroke", sidebar); sStroke.Color = C.border; sStroke.Thickness = 1; sStroke.Transparency = 0.6
+local sStroke = Instance.new("UIStroke", sidebar); sStroke.Color = C.border; sStroke.Thickness = 1; sStroke.Transparency = 0.85
 local sp = Instance.new("UIPadding", sidebar)
 sp.PaddingTop = UDim.new(0, 12); sp.PaddingLeft = UDim.new(0, 10); sp.PaddingRight = UDim.new(0, 10); sp.PaddingBottom = UDim.new(0, 12)
 local sl = Instance.new("UIListLayout", sidebar); sl.Padding = UDim.new(0, 5); sl.SortOrder = Enum.SortOrder.LayoutOrder
@@ -291,7 +298,7 @@ content.Position = UDim2.new(0, 170, 0, 0); content.Size = UDim2.new(1, -170, 1,
 content.BackgroundColor3 = C.panel; content.BorderSizePixel = 0
 Instance.new("UICorner", content).CornerRadius = UDim.new(0, 12)
 content.ClipsDescendants = true
-local cStroke = Instance.new("UIStroke", content); cStroke.Color = C.border; cStroke.Thickness = 1; cStroke.Transparency = 0.6
+local cStroke = Instance.new("UIStroke", content); cStroke.Color = C.border; cStroke.Thickness = 1; cStroke.Transparency = 0.85
 
 local pages, tabButtons, currentPage = {}, {}, nil
 local function switchTo(name)
@@ -299,9 +306,10 @@ local function switchTo(name)
     for n, b in pairs(tabButtons) do
         local active = (n == name)
         tween(b.frame, { BackgroundColor3 = active and C.card or C.sidebar }, 0.15)
+        tween(b.stroke, { Transparency = active and 0.4 or 1 }, 0.15)
         b.label.TextColor3 = active and C.text or C.textDim
-        b.icon.TextColor3 = active and C.accent1 or C.muted
-        tween(b.bar, { BackgroundTransparency = active and 0 or 1, Size = active and UDim2.new(0,4,0,24) or UDim2.new(0,4,0,8) }, 0.2)
+        b.icon.TextColor3 = active and C.text or C.muted
+        tween(b.bar, { BackgroundTransparency = active and 0 or 1, Size = active and UDim2.new(0,3,0,22) or UDim2.new(0,3,0,0) }, 0.2)
     end
     currentPage = name
 end
@@ -310,22 +318,23 @@ local tabOrder = 0
 local function makeTab(name, icon)
     tabOrder = tabOrder + 1
     local f = Instance.new("TextButton", sidebar)
-    f.Size = UDim2.new(1, 0, 0, 42); f.BackgroundColor3 = C.sidebar
+    f.Size = UDim2.new(1, 0, 0, 40); f.BackgroundColor3 = C.sidebar
     f.BorderSizePixel = 0; f.Text = ""; f.AutoButtonColor = false; f.LayoutOrder = tabOrder
     Instance.new("UICorner", f).CornerRadius = UDim.new(0, 10)
+    local stroke = Instance.new("UIStroke", f); stroke.Color = C.accent1; stroke.Thickness = 1; stroke.Transparency = 1
     local bar = Instance.new("Frame", f)
-    bar.Size = UDim2.new(0, 4, 0, 8); bar.Position = UDim2.new(0, 0, 0.5, -12)
+    bar.Size = UDim2.new(0, 3, 0, 0); bar.Position = UDim2.new(0, 2, 0.5, 0); bar.AnchorPoint = Vector2.new(0, 0.5)
     bar.BackgroundColor3 = C.accent1; bar.BorderSizePixel = 0; bar.BackgroundTransparency = 1
-    Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 2)
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(1, 0)
     local ic = Instance.new("TextLabel", f)
     ic.BackgroundTransparency = 1; ic.Position = UDim2.new(0, 14, 0, 0); ic.Size = UDim2.new(0, 22, 1, 0)
     ic.Text = icon; ic.TextColor3 = C.muted; ic.Font = Enum.Font.GothamBold; ic.TextSize = 15
     local lab = Instance.new("TextLabel", f)
-    lab.BackgroundTransparency = 1; lab.Position = UDim2.new(0, 40, 0, 0); lab.Size = UDim2.new(1, -46, 1, 0)
-    lab.Text = name; lab.TextColor3 = C.textDim; lab.Font = Enum.Font.GothamBold; lab.TextSize = 12
+    lab.BackgroundTransparency = 1; lab.Position = UDim2.new(0, 42, 0, 0); lab.Size = UDim2.new(1, -48, 1, 0)
+    lab.Text = name; lab.TextColor3 = C.textDim; lab.Font = Enum.Font.GothamSemibold; lab.TextSize = 12
     lab.TextXAlignment = Enum.TextXAlignment.Left
-    tabButtons[name] = { frame = f, label = lab, bar = bar, icon = ic }
-    f.MouseEnter:Connect(function() if currentPage ~= name then tween(f, { BackgroundColor3 = C.card }) end end)
+    tabButtons[name] = { frame = f, label = lab, bar = bar, icon = ic, stroke = stroke }
+    f.MouseEnter:Connect(function() if currentPage ~= name then tween(f, { BackgroundColor3 = C.cardAlt }) end end)
     f.MouseLeave:Connect(function() if currentPage ~= name then tween(f, { BackgroundColor3 = C.sidebar }) end end)
     f.MouseButton1Click:Connect(function() switchTo(name) end)
 end
@@ -359,7 +368,7 @@ local function card(parent)
     c.Size = UDim2.new(1, 0, 0, 40); c.AutomaticSize = Enum.AutomaticSize.Y
     c.ClipsDescendants = true
     Instance.new("UICorner", c).CornerRadius = UDim.new(0, 12)
-    local st = Instance.new("UIStroke", c); st.Color = C.border; st.Thickness = 1; st.Transparency = 0.5
+    local st = Instance.new("UIStroke", c); st.Color = C.border; st.Thickness = 1; st.Transparency = 0.8
     local pd = Instance.new("UIPadding", c)
     pd.PaddingTop = UDim.new(0, 14); pd.PaddingBottom = UDim.new(0, 14); pd.PaddingLeft = UDim.new(0, 14); pd.PaddingRight = UDim.new(0, 14)
     local l = Instance.new("UIListLayout", c); l.Padding = UDim.new(0, 10); l.SortOrder = Enum.SortOrder.LayoutOrder
@@ -501,19 +510,34 @@ local function dropdown(parent, labelText, tierDot)
     hLabel.BackgroundTransparency = 1; hLabel.Position = UDim2.new(0, tierDot and 32 or 14, 0, 0)
     hLabel.Size = UDim2.new(1, -50, 1, 0); hLabel.Text = labelText; hLabel.TextColor3 = C.text
     hLabel.Font = Enum.Font.GothamBold; hLabel.TextSize = 12; hLabel.TextXAlignment = Enum.TextXAlignment.Left
-    local chev = Instance.new("TextLabel", hdr)
-    chev.BackgroundTransparency = 1; chev.Position = UDim2.new(1, -28, 0, 0); chev.Size = UDim2.new(0, 16, 1, 0)
-    chev.Text = "▸"; chev.TextColor3 = C.accent1; chev.Font = Enum.Font.GothamBold; chev.TextSize = 12; chev.Rotation = 0
+    local chevWrap = Instance.new("Frame", hdr)
+    chevWrap.AnchorPoint = Vector2.new(1, 0.5); chevWrap.Position = UDim2.new(1, -14, 0.5, 0)
+    chevWrap.Size = UDim2.new(0, 18, 0, 18); chevWrap.BackgroundTransparency = 1
+    local hBar = Instance.new("Frame", chevWrap)  -- horizontal bar (always visible = minus / plus hbar)
+    hBar.AnchorPoint = Vector2.new(0.5, 0.5); hBar.Position = UDim2.new(0.5, 0, 0.5, 0)
+    hBar.Size = UDim2.new(0, 12, 0, 2); hBar.BackgroundColor3 = C.textDim; hBar.BorderSizePixel = 0
+    Instance.new("UICorner", hBar).CornerRadius = UDim.new(1, 0)
+    local vBar = Instance.new("Frame", chevWrap)  -- vertical bar (shows only when closed = plus)
+    vBar.AnchorPoint = Vector2.new(0.5, 0.5); vBar.Position = UDim2.new(0.5, 0, 0.5, 0)
+    vBar.Size = UDim2.new(0, 2, 0, 12); vBar.BackgroundColor3 = C.textDim; vBar.BorderSizePixel = 0
+    Instance.new("UICorner", vBar).CornerRadius = UDim.new(1, 0)
     local bodyFrame = Instance.new("Frame", wrap)
     bodyFrame.Position = UDim2.new(0, 0, 0, 42); bodyFrame.Size = UDim2.new(1, 0, 0, 0)
     bodyFrame.AutomaticSize = Enum.AutomaticSize.Y; bodyFrame.BackgroundTransparency = 1; bodyFrame.Visible = false
     local bl = Instance.new("UIListLayout", bodyFrame); bl.Padding = UDim.new(0, 4)
     local open = false
-    hdr.MouseEnter:Connect(function() tween(hdr, { BackgroundColor3 = C.hover }); tween(st, { Transparency = 0.3 }) end)
-    hdr.MouseLeave:Connect(function() tween(hdr, { BackgroundColor3 = C.cardAlt }); tween(st, { Transparency = 0.5 }) end)
+    hdr.MouseEnter:Connect(function()
+        tween(hdr, { BackgroundColor3 = C.hover }); tween(st, { Transparency = 0.2 })
+        tween(hBar, { BackgroundColor3 = C.text }); tween(vBar, { BackgroundColor3 = C.text })
+    end)
+    hdr.MouseLeave:Connect(function()
+        tween(hdr, { BackgroundColor3 = C.cardAlt }); tween(st, { Transparency = 0.5 })
+        tween(hBar, { BackgroundColor3 = C.textDim }); tween(vBar, { BackgroundColor3 = C.textDim })
+    end)
     hdr.MouseButton1Click:Connect(function()
         open = not open; bodyFrame.Visible = open
-        tween(chev, { Rotation = open and 90 or 0 }, 0.25)
+        -- Collapse vertical bar when open (becomes a minus); extend when closed (becomes a plus)
+        tween(vBar, { Size = open and UDim2.new(0, 2, 0, 0) or UDim2.new(0, 2, 0, 12) }, 0.2)
     end)
     return bodyFrame
 end
