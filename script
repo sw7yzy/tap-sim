@@ -70,16 +70,23 @@ local TIER_COLORS = {
     secret    = Color3.fromRGB(255,100,110),
 }
 
+-- Halloween Opulence palette: deep plum base, candle orange accent, cream text
 local C = {
-    bg = Color3.fromRGB(13, 15, 20),  sidebar = Color3.fromRGB(17, 19, 26),
-    panel = Color3.fromRGB(20, 23, 30), card = Color3.fromRGB(27, 30, 39),
-    cardAlt = Color3.fromRGB(34, 38, 49), hover = Color3.fromRGB(41, 46, 60),
-    border = Color3.fromRGB(45, 50, 65), borderBri = Color3.fromRGB(75, 82, 102),
-    accent1 = Color3.fromRGB(155,108,255), accent2 = Color3.fromRGB(96,180,255),
-    accent3 = Color3.fromRGB(255,112,193),
-    text = Color3.fromRGB(240,243,250), textDim = Color3.fromRGB(170,178,195),
-    muted = Color3.fromRGB(100,108,125),
-    good = Color3.fromRGB(90,220,150), bad = Color3.fromRGB(255,100,115), warn = Color3.fromRGB(255,190,90),
+    bg = Color3.fromRGB(10, 5, 16),      -- deepest plum black
+    sidebar = Color3.fromRGB(16, 8, 22), -- panel with warm hint
+    panel = Color3.fromRGB(22, 12, 28),  -- content ground
+    card = Color3.fromRGB(30, 16, 36),   -- row surface
+    cardAlt = Color3.fromRGB(42, 22, 48), -- subtle rise
+    hover = Color3.fromRGB(58, 30, 62),  -- hover state
+    border = Color3.fromRGB(74, 33, 85), -- warm plum border
+    borderBri = Color3.fromRGB(130, 60, 145),
+    accent1 = Color3.fromRGB(255, 140, 66),  -- primary candle orange
+    accent2 = Color3.fromRGB(255, 107, 34),  -- deeper flame
+    accent3 = Color3.fromRGB(255, 184, 108), -- highlight ember
+    text    = Color3.fromRGB(245, 232, 216),    -- warm cream
+    textDim = Color3.fromRGB(195, 170, 155),    -- faded cream
+    muted   = Color3.fromRGB(130, 100, 115),    -- plum grey
+    good = Color3.fromRGB(144, 228, 110), bad = Color3.fromRGB(255, 92, 92), warn = Color3.fromRGB(255, 200, 100),
     rCommon=Color3.fromRGB(170,170,180), rRare=Color3.fromRGB(90,200,255),
     rEpic=Color3.fromRGB(190,100,230), rLegendary=Color3.fromRGB(255,185,70),
     rMythical=Color3.fromRGB(255,80,160), rSecret=Color3.fromRGB(255,100,110),
@@ -209,9 +216,9 @@ Instance.new("UICorner", main).CornerRadius = UDim.new(0, 16)
 main.ClipsDescendants = true
 local bgGrad = Instance.new("UIGradient", main)
 bgGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(26, 22, 38)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(14, 15, 22)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 16)),
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(45, 18, 42)),    -- plum top-left glow
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(18, 10, 24)),  -- deep middle
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 4, 14)),      -- near black bottom-right
 })
 bgGrad.Rotation = 135
 local ms = Instance.new("UIStroke", main); ms.Color = C.borderBri; ms.Thickness = 1; ms.Transparency = 0.75
@@ -223,63 +230,55 @@ local hf = Instance.new("Frame", header); hf.Size = UDim2.new(1, 0, 0, 16); hf.P
 hf.BackgroundColor3 = C.panel; hf.BorderSizePixel = 0
 local hgrad = Instance.new("UIGradient", header)
 hgrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(36, 28, 58)),
-    ColorSequenceKeypoint.new(0.6, Color3.fromRGB(22, 24, 36)),
-    ColorSequenceKeypoint.new(1, C.panel)
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(60, 20, 55)),    -- warm plum top
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(30, 14, 32)),  -- fade
+    ColorSequenceKeypoint.new(1, C.panel)                        -- panel base
 })
 hgrad.Rotation = 110
 
--- Brand mark: diamond rotated square with gradient (looks intentional, not a stray dot)
-local brandWrap = Instance.new("Frame", header)
-brandWrap.AnchorPoint = Vector2.new(0, 0.5); brandWrap.Position = UDim2.new(0, 22, 0.5, 0)
-brandWrap.Size = UDim2.new(0, 28, 0, 28); brandWrap.BackgroundTransparency = 1
-local brand = Instance.new("Frame", brandWrap)
-brand.AnchorPoint = Vector2.new(0.5, 0.5); brand.Position = UDim2.new(0.5, 0, 0.5, 0)
-brand.Size = UDim2.new(0, 20, 0, 20); brand.Rotation = 45
-brand.BackgroundColor3 = C.accent1; brand.BorderSizePixel = 0
-Instance.new("UICorner", brand).CornerRadius = UDim.new(0, 5)
-local bg = Instance.new("UIGradient", brand)
-bg.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, C.accent3), ColorSequenceKeypoint.new(1, C.accent1)})
-bg.Rotation = 135
-local brandGlow = Instance.new("UIStroke", brand); brandGlow.Color = C.accent1; brandGlow.Thickness = 4; brandGlow.Transparency = 0.85
+-- Brand mark: candle flame emoji / glyph
+local brand = Instance.new("TextLabel", header)
+brand.BackgroundTransparency = 1; brand.AnchorPoint = Vector2.new(0, 0.5)
+brand.Position = UDim2.new(0, 22, 0.5, 0); brand.Size = UDim2.new(0, 28, 0, 28)
+brand.Text = "✦"; brand.TextColor3 = C.accent1
+brand.Font = Enum.Font.GothamBlack; brand.TextSize = 20
+brand.TextXAlignment = Enum.TextXAlignment.Center; brand.TextYAlignment = Enum.TextYAlignment.Center
 
--- Title (centered, big, premium)
+-- Title (centered, serif italic for Opulence vibe)
 local title = Instance.new("TextLabel", header)
 title.BackgroundTransparency = 1; title.AnchorPoint = Vector2.new(0.5, 0.5)
-title.Position = UDim2.new(0.5, 0, 0.5, 0); title.Size = UDim2.new(0, 360, 0, 32)
-title.Text = "TAP  SIM  REBORN"; title.TextColor3 = C.text
-title.Font = Enum.Font.GothamBlack; title.TextSize = 20
+title.Position = UDim2.new(0.5, 0, 0.5, 0); title.Size = UDim2.new(0, 400, 0, 36)
+title.Text = "Tap Sim Reborn"; title.TextColor3 = C.accent3
+title.Font = Enum.Font.Antique; title.TextSize = 26
 title.TextXAlignment = Enum.TextXAlignment.Center; title.TextYAlignment = Enum.TextYAlignment.Center
 local titleGrad = Instance.new("UIGradient", title)
 titleGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255,255,255)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(210,185,255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(255,255,255)),
+    ColorSequenceKeypoint.new(0, C.accent3),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 230, 190)),
+    ColorSequenceKeypoint.new(1, C.accent1),
 })
+titleGrad.Rotation = 15
 
 -- Hidden page label (kept as upvalue reference for switchTo compatibility; invisible)
 local pageLabel = Instance.new("TextLabel", header)
 pageLabel.BackgroundTransparency = 1; pageLabel.Visible = false
 pageLabel.Text = ""; pageLabel.Size = UDim2.new(0, 0, 0, 0)
 
--- Full-width accent line fading at edges (sharper, more visible color)
+-- Accent line: short centered glow line (candle-lit divider)
 local accentLine = Instance.new("Frame", header)
-accentLine.Size = UDim2.new(1, -32, 0, 2); accentLine.Position = UDim2.new(0, 16, 1, -2)
-accentLine.BackgroundColor3 = C.accent1; accentLine.BorderSizePixel = 0
-Instance.new("UICorner", accentLine).CornerRadius = UDim.new(1, 0)
+accentLine.Size = UDim2.new(0, 80, 0, 1); accentLine.AnchorPoint = Vector2.new(0.5, 0)
+accentLine.Position = UDim2.new(0.5, 0, 1, -4); accentLine.BackgroundColor3 = C.accent1
+accentLine.BorderSizePixel = 0
 local lineGrad = Instance.new("UIGradient", accentLine)
 lineGrad.Transparency = NumberSequence.new({
-    NumberSequenceKeypoint.new(0,    1),
-    NumberSequenceKeypoint.new(0.15, 0.1),
-    NumberSequenceKeypoint.new(0.5,  0),
-    NumberSequenceKeypoint.new(0.85, 0.1),
-    NumberSequenceKeypoint.new(1,    1),
+    NumberSequenceKeypoint.new(0,   1),
+    NumberSequenceKeypoint.new(0.3, 0),
+    NumberSequenceKeypoint.new(0.7, 0),
+    NumberSequenceKeypoint.new(1,   1),
 })
-lineGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, C.accent2),
-    ColorSequenceKeypoint.new(0.5, C.accent1),
-    ColorSequenceKeypoint.new(1, C.accent3)
-})
+-- Soft glow halo around the accent line
+local lineGlow = Instance.new("UIStroke", accentLine)
+lineGlow.Color = C.accent1; lineGlow.Thickness = 3; lineGlow.Transparency = 0.7
 
 local function headerBtn(x, text, hoverColor, onClick)
     local b = Instance.new("TextButton", header)
@@ -334,17 +333,16 @@ local sp = Instance.new("UIPadding", sidebar)
 sp.PaddingTop = UDim.new(0, 14); sp.PaddingLeft = UDim.new(0, 10); sp.PaddingRight = UDim.new(0, 10); sp.PaddingBottom = UDim.new(0, 14)
 local sl = Instance.new("UIListLayout", sidebar); sl.Padding = UDim.new(0, 4); sl.SortOrder = Enum.SortOrder.LayoutOrder
 
--- Nav section label at top of sidebar
+-- Nav section label (small serif eyebrow)
 local navLabel = Instance.new("TextLabel", sidebar)
 navLabel.LayoutOrder = -2; navLabel.BackgroundTransparency = 1
-navLabel.Size = UDim2.new(1, 0, 0, 16)
-navLabel.Text = "NAVIGATION"; navLabel.TextColor3 = C.muted
-navLabel.Font = Enum.Font.GothamBold; navLabel.TextSize = 9
-navLabel.TextXAlignment = Enum.TextXAlignment.Left
-local navPad = Instance.new("UIPadding", navLabel); navPad.PaddingLeft = UDim.new(0, 6)
+navLabel.Size = UDim2.new(1, 0, 0, 18)
+navLabel.Text = "— spells & sundries —"; navLabel.TextColor3 = C.muted
+navLabel.Font = Enum.Font.Antique; navLabel.TextSize = 11
+navLabel.TextXAlignment = Enum.TextXAlignment.Center
 local navSpacer = Instance.new("Frame", sidebar)
 navSpacer.LayoutOrder = -1; navSpacer.BackgroundTransparency = 1
-navSpacer.Size = UDim2.new(1, 0, 0, 4)
+navSpacer.Size = UDim2.new(1, 0, 0, 6)
 
 local content = Instance.new("Frame", body)
 content.Position = UDim2.new(0, 180, 0, 0); content.Size = UDim2.new(1, -180, 1, 0)
@@ -358,34 +356,33 @@ local function switchTo(name)
     for n, p in pairs(pages) do p.Visible = (n == name) end
     for n, b in pairs(tabButtons) do
         local active = (n == name)
-        tween(b.frame, { BackgroundColor3 = active and C.accent1 or C.sidebar, BackgroundTransparency = active and 0.82 or 0 }, 0.15)
-        tween(b.stroke, { Transparency = active and 0.3 or 1, Color = active and C.accent1 or C.border }, 0.15)
-        b.label.TextColor3 = active and C.text or C.textDim
+        tween(b.frame, { BackgroundColor3 = active and C.accent2 or C.sidebar, BackgroundTransparency = active and 0.78 or 0 }, 0.15)
+        tween(b.stroke, { Transparency = active and 0.5 or 1, Color = active and C.accent1 or C.border }, 0.15)
+        b.label.TextColor3 = active and C.accent3 or C.textDim
         b.icon.TextColor3 = active and C.accent1 or C.muted
-        tween(b.bar, { BackgroundTransparency = active and 0 or 1, Size = active and UDim2.new(0,3,0,24) or UDim2.new(0,3,0,0) }, 0.2)
+        tween(b.bar, { BackgroundTransparency = active and 0 or 1, Size = active and UDim2.new(0,2,0,22) or UDim2.new(0,2,0,0) }, 0.2)
     end
     currentPage = name
-    if pageLabel then pageLabel.Text = "/ " .. name:upper() end
 end
 
 local tabOrder = 0
 local function makeTab(name, icon)
     tabOrder = tabOrder + 1
     local f = Instance.new("TextButton", sidebar)
-    f.Size = UDim2.new(1, 0, 0, 40); f.BackgroundColor3 = C.sidebar
+    f.Size = UDim2.new(1, 0, 0, 38); f.BackgroundColor3 = C.sidebar
     f.BorderSizePixel = 0; f.Text = ""; f.AutoButtonColor = false; f.LayoutOrder = tabOrder
-    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 10)
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
     local stroke = Instance.new("UIStroke", f); stroke.Color = C.accent1; stroke.Thickness = 1; stroke.Transparency = 1
     local bar = Instance.new("Frame", f)
-    bar.Size = UDim2.new(0, 3, 0, 0); bar.Position = UDim2.new(0, 2, 0.5, 0); bar.AnchorPoint = Vector2.new(0, 0.5)
+    bar.Size = UDim2.new(0, 2, 0, 0); bar.Position = UDim2.new(0, 0, 0.5, 0); bar.AnchorPoint = Vector2.new(0, 0.5)
     bar.BackgroundColor3 = C.accent1; bar.BorderSizePixel = 0; bar.BackgroundTransparency = 1
     Instance.new("UICorner", bar).CornerRadius = UDim.new(1, 0)
     local ic = Instance.new("TextLabel", f)
-    ic.BackgroundTransparency = 1; ic.Position = UDim2.new(0, 14, 0, 0); ic.Size = UDim2.new(0, 22, 1, 0)
+    ic.BackgroundTransparency = 1; ic.Position = UDim2.new(0, 12, 0, 0); ic.Size = UDim2.new(0, 22, 1, 0)
     ic.Text = icon; ic.TextColor3 = C.muted; ic.Font = Enum.Font.GothamBold; ic.TextSize = 15
     local lab = Instance.new("TextLabel", f)
-    lab.BackgroundTransparency = 1; lab.Position = UDim2.new(0, 42, 0, 0); lab.Size = UDim2.new(1, -48, 1, 0)
-    lab.Text = name; lab.TextColor3 = C.textDim; lab.Font = Enum.Font.GothamSemibold; lab.TextSize = 12
+    lab.BackgroundTransparency = 1; lab.Position = UDim2.new(0, 40, 0, 0); lab.Size = UDim2.new(1, -46, 1, 0)
+    lab.Text = name; lab.TextColor3 = C.textDim; lab.Font = Enum.Font.Antique; lab.TextSize = 14
     lab.TextXAlignment = Enum.TextXAlignment.Left
     tabButtons[name] = { frame = f, label = lab, bar = bar, icon = ic, stroke = stroke }
     f.MouseEnter:Connect(function() if currentPage ~= name then tween(f, { BackgroundColor3 = C.cardAlt }) end end)
@@ -407,29 +404,32 @@ end
 
 local function sectionHeader(parent, text)
     local wrap = Instance.new("Frame", parent); wrap.BackgroundTransparency = 1
-    wrap.Size = UDim2.new(1, 0, 0, 18)
-    local line = Instance.new("Frame", wrap); line.Size = UDim2.new(0, 2, 0, 12); line.Position = UDim2.new(0, 2, 0.5, -6)
-    line.BackgroundColor3 = C.accent1; line.BorderSizePixel = 0
-    Instance.new("UICorner", line).CornerRadius = UDim.new(1, 0)
+    wrap.Size = UDim2.new(1, 0, 0, 22)
+    -- Candle flame marker + italic serif label — ornate, Halloween-opulent
+    local flame = Instance.new("TextLabel", wrap); flame.BackgroundTransparency = 1
+    flame.Position = UDim2.new(0, 0, 0, 0); flame.Size = UDim2.new(0, 14, 1, 0)
+    flame.Text = "✦"; flame.TextColor3 = C.accent1
+    flame.Font = Enum.Font.GothamBold; flame.TextSize = 11
+    flame.TextXAlignment = Enum.TextXAlignment.Center; flame.TextYAlignment = Enum.TextYAlignment.Center
     local l = Instance.new("TextLabel", wrap); l.BackgroundTransparency = 1
-    l.Position = UDim2.new(0, 12, 0, 0); l.Size = UDim2.new(1, -12, 1, 0)
-    l.Text = text; l.TextColor3 = C.textDim
-    l.Font = Enum.Font.GothamBold; l.TextSize = 10; l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Position = UDim2.new(0, 18, 0, 0); l.Size = UDim2.new(1, -18, 1, 0)
+    l.Text = text; l.TextColor3 = C.accent3
+    l.Font = Enum.Font.Antique; l.TextSize = 13; l.TextXAlignment = Enum.TextXAlignment.Left
 end
 
 local function card(parent)
     local c = Instance.new("Frame", parent); c.BackgroundColor3 = C.card; c.BorderSizePixel = 0
     c.Size = UDim2.new(1, 0, 0, 40); c.AutomaticSize = Enum.AutomaticSize.Y
     c.ClipsDescendants = true
-    Instance.new("UICorner", c).CornerRadius = UDim.new(0, 12)
-    -- Subtle top-to-bottom lift gradient so cards read as elevated surfaces
+    Instance.new("UICorner", c).CornerRadius = UDim.new(0, 10)
+    -- Warm plum gradient fill, candle-lit top edge
     local grad = Instance.new("UIGradient", c)
     grad.Rotation = 90
     grad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(34, 38, 50)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(23, 26, 34)),
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(42, 22, 50)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(24, 12, 30)),
     })
-    local st = Instance.new("UIStroke", c); st.Color = C.borderBri; st.Thickness = 1; st.Transparency = 0.7
+    local st = Instance.new("UIStroke", c); st.Color = C.border; st.Thickness = 1; st.Transparency = 0.55
     local pd = Instance.new("UIPadding", c)
     pd.PaddingTop = UDim.new(0, 14); pd.PaddingBottom = UDim.new(0, 14); pd.PaddingLeft = UDim.new(0, 14); pd.PaddingRight = UDim.new(0, 14)
     local l = Instance.new("UIListLayout", c); l.Padding = UDim.new(0, 10); l.SortOrder = Enum.SortOrder.LayoutOrder
@@ -570,7 +570,7 @@ local function dropdown(parent, labelText, tierDot)
     local hLabel = Instance.new("TextLabel", hdr)
     hLabel.BackgroundTransparency = 1; hLabel.Position = UDim2.new(0, tierDot and 32 or 14, 0, 0)
     hLabel.Size = UDim2.new(1, -50, 1, 0); hLabel.Text = labelText; hLabel.TextColor3 = C.text
-    hLabel.Font = Enum.Font.GothamBold; hLabel.TextSize = 12; hLabel.TextXAlignment = Enum.TextXAlignment.Left
+    hLabel.Font = Enum.Font.Antique; hLabel.TextSize = 13; hLabel.TextXAlignment = Enum.TextXAlignment.Left
     local chevWrap = Instance.new("Frame", hdr)
     chevWrap.AnchorPoint = Vector2.new(1, 0.5); chevWrap.Position = UDim2.new(1, -14, 0.5, 0)
     chevWrap.Size = UDim2.new(0, 18, 0, 18); chevWrap.BackgroundTransparency = 1
