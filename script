@@ -652,6 +652,7 @@ toggleRow(bossCard, "Auto-defeat", "TPs and spam-taps when boss spawns", false, 
 local bossStatus, bossDot = statusBar(pageH)
 
 -- ================= MERCHANT PAGE =================
+do
 local pageMerch = makePage("Merchant")
 
 -- Hero banner
@@ -952,7 +953,9 @@ task.spawn(function()
     end
 end)
 
+end -- end merchant
 -- ================= POTIONS PAGE =================
+do
 local POTIONS = {
     { id = "Luck Potion I",        rarity = "Rare",      duration = 300, desc = "+10% Luck, 5 min" },
     { id = "Luck Potion II",       rarity = "Epic",      duration = 900, desc = "+20% Luck, 15 min" },
@@ -1033,7 +1036,9 @@ task.spawn(function()
     end
 end)
 
+end -- end potions
 -- ================= REWARDS PAGE =================
+do
 local QUEST_DEFS = {}
 pcall(function()
     local qc = require(RS.Shared.Quests.QuestConfig)
@@ -1124,6 +1129,8 @@ task.spawn(function()
         end
     end
 end)
+
+end -- end rewards
 
 local pageEggs = makePage("Eggs")
 sectionHeader(pageEggs, "SELECT YOUR EGG")
