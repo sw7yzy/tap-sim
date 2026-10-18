@@ -1355,27 +1355,29 @@ local function getPetId()
     return key and key:split(":")[1]
 end
 task.spawn(function()
-    local lastKeptPet = nil
+    local keptKey = nil
     while true do
         if AutoEnchant.enabled then
             local petId = getPetId()
+            local slot = AutoEnchant.slot
+            local key = petId and (petId .. ":" .. tostring(slot))
             if not petId then task.wait(1)
-            elseif petId == lastKeptPet then task.wait(0.5)
+            elseif key == keptKey then task.wait(0.5)
             else
                 local s = Enc.GetState:InvokeServer()
                 local p = s and s.Enchanting and s.Enchanting.Pending
                 if p and p.Token then Enc.Resolve:InvokeServer({ Token = p.Token, UseNew = false }) end
                 local kept = false
                 while AutoEnchant.enabled and not kept do
-                    if getPetId() ~= petId then break end
+                    if getPetId() ~= petId or AutoEnchant.slot ~= slot then break end
                     local ok, res = pcall(function()
-                        return Enc.Enchant:InvokeServer({ PetId = petId, RequestId = HS:GenerateGUID(false), Slot = AutoEnchant.slot })
+                        return Enc.Enchant:InvokeServer({ PetId = petId, RequestId = HS:GenerateGUID(false), Slot = slot })
                     end)
                     if ok and res and res.Pending then
                         local rolled, token = res.Pending.Enchant, res.Pending.Token
                         local keep = AutoEnchant.wanted[rolled] == true
                         pcall(function() Enc.Resolve:InvokeServer({ Token = token, UseNew = keep }) end)
-                        if keep then lastKeptPet = petId; kept = true end
+                        if keep then keptKey = key; kept = true end
                     elseif res and res.Reason == "RateLimited" then task.wait(0.1)
                     elseif res and res.Reason == "ChoosePendingEnchant" then
                         local st = Enc.GetState:InvokeServer()
