@@ -70,28 +70,33 @@ local TIER_COLORS = {
     secret    = Color3.fromRGB(255,100,110),
 }
 
--- Halloween Opulence palette: deep plum base, candle orange accent, cream text
+-- Monochrome Precision: pure black, hairline rules, single orange accent, mono font
 local C = {
-    bg = Color3.fromRGB(10, 5, 16),      -- deepest plum black
-    sidebar = Color3.fromRGB(16, 8, 22), -- panel with warm hint
-    panel = Color3.fromRGB(22, 12, 28),  -- content ground
-    card = Color3.fromRGB(30, 16, 36),   -- row surface
-    cardAlt = Color3.fromRGB(42, 22, 48), -- subtle rise
-    hover = Color3.fromRGB(58, 30, 62),  -- hover state
-    border = Color3.fromRGB(74, 33, 85), -- warm plum border
-    borderBri = Color3.fromRGB(130, 60, 145),
-    accent1 = Color3.fromRGB(255, 140, 66),  -- primary candle orange
-    accent2 = Color3.fromRGB(255, 107, 34),  -- deeper flame
-    accent3 = Color3.fromRGB(255, 184, 108), -- highlight ember
-    text    = Color3.fromRGB(245, 232, 216),    -- warm cream
-    textDim = Color3.fromRGB(195, 170, 155),    -- faded cream
-    muted   = Color3.fromRGB(130, 100, 115),    -- plum grey
-    good = Color3.fromRGB(144, 228, 110), bad = Color3.fromRGB(255, 92, 92), warn = Color3.fromRGB(255, 200, 100),
+    bg      = Color3.fromRGB(0, 0, 0),
+    sidebar = Color3.fromRGB(0, 0, 0),
+    panel   = Color3.fromRGB(0, 0, 0),
+    card    = Color3.fromRGB(10, 10, 10),
+    cardAlt = Color3.fromRGB(18, 18, 18),
+    hover   = Color3.fromRGB(26, 26, 26),
+    border  = Color3.fromRGB(28, 28, 28),
+    borderBri = Color3.fromRGB(60, 60, 60),
+    accent1 = Color3.fromRGB(255, 90, 31),    -- orange
+    accent2 = Color3.fromRGB(255, 120, 60),
+    accent3 = Color3.fromRGB(255, 150, 90),
+    text    = Color3.fromRGB(255, 255, 255),
+    textDim = Color3.fromRGB(170, 170, 170),
+    muted   = Color3.fromRGB(100, 100, 100),
+    good = Color3.fromRGB(100, 230, 150), bad = Color3.fromRGB(255, 90, 110), warn = Color3.fromRGB(255, 190, 90),
     rCommon=Color3.fromRGB(170,170,180), rRare=Color3.fromRGB(90,200,255),
     rEpic=Color3.fromRGB(190,100,230), rLegendary=Color3.fromRGB(255,185,70),
     rMythical=Color3.fromRGB(255,80,160), rSecret=Color3.fromRGB(255,100,110),
     tGolden=Color3.fromRGB(255,220,80), tDiamond=Color3.fromRGB(130,230,255),
     tRainbow=Color3.fromRGB(255,140,220),
+}
+-- Font tokens for the Monochrome theme
+local F = {
+    mono = Enum.Font.Code,       -- primary (JetBrains-like)
+    monoBold = Enum.Font.Code,   -- Roblox Code is already monospace medium weight
 }
 
 local CONFIG_DIR = "TSReborn"
@@ -204,92 +209,75 @@ local function tween(o, p, t, s) TS:Create(o, TweenInfo.new(t or 0.2, s or Enum.
 
 local shadowLayer = Instance.new("Frame", gui)
 shadowLayer.Size = UDim2.new(0, 680, 0, 720); shadowLayer.Position = UDim2.new(0, 4, 0.04, 0)
-shadowLayer.BackgroundColor3 = C.accent1; shadowLayer.BackgroundTransparency = 0.9
+shadowLayer.BackgroundColor3 = C.accent1; shadowLayer.BackgroundTransparency = 1  -- hidden in mono theme
 shadowLayer.BorderSizePixel = 0; shadowLayer.ZIndex = 0
-Instance.new("UICorner", shadowLayer).CornerRadius = UDim.new(0, 22)
+Instance.new("UICorner", shadowLayer).CornerRadius = UDim.new(0, 0)
 
 local main = Instance.new("Frame", gui)
 main.Size = UDim2.new(0, 660, 0, 700); main.Position = UDim2.new(0, 24, 0.04, 0)
 main.BackgroundColor3 = C.bg; main.BorderSizePixel = 0
 main.Active = true; main.Draggable = true; main.ZIndex = 1
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 16)
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 0)
 main.ClipsDescendants = true
+-- Pure black: no gradient
 local bgGrad = Instance.new("UIGradient", main)
-bgGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(45, 18, 42)),    -- plum top-left glow
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(18, 10, 24)),  -- deep middle
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 4, 14)),      -- near black bottom-right
-})
-bgGrad.Rotation = 135
-local ms = Instance.new("UIStroke", main); ms.Color = C.borderBri; ms.Thickness = 1; ms.Transparency = 0.75
+bgGrad.Color = ColorSequence.new(Color3.new(0, 0, 0))
+local ms = Instance.new("UIStroke", main); ms.Color = C.border; ms.Thickness = 1; ms.Transparency = 0
 
 local header = Instance.new("Frame", main)
 header.Size = UDim2.new(1, 0, 0, 72); header.BackgroundColor3 = C.panel; header.BorderSizePixel = 0
-Instance.new("UICorner", header).CornerRadius = UDim.new(0, 16)
+Instance.new("UICorner", header).CornerRadius = UDim.new(0, 0)
 local hf = Instance.new("Frame", header); hf.Size = UDim2.new(1, 0, 0, 16); hf.Position = UDim2.new(0, 0, 1, -16)
 hf.BackgroundColor3 = C.panel; hf.BorderSizePixel = 0
+-- Flat black header (no gradient for Monochrome)
 local hgrad = Instance.new("UIGradient", header)
-hgrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(60, 20, 55)),    -- warm plum top
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(30, 14, 32)),  -- fade
-    ColorSequenceKeypoint.new(1, C.panel)                        -- panel base
-})
-hgrad.Rotation = 110
+hgrad.Color = ColorSequence.new(Color3.new(0,0,0))
 
--- Brand mark: candle flame emoji / glyph
-local brand = Instance.new("TextLabel", header)
-brand.BackgroundTransparency = 1; brand.AnchorPoint = Vector2.new(0, 0.5)
-brand.Position = UDim2.new(0, 22, 0.5, 0); brand.Size = UDim2.new(0, 28, 0, 28)
-brand.Text = "✦"; brand.TextColor3 = C.accent1
-brand.Font = Enum.Font.GothamBlack; brand.TextSize = 20
-brand.TextXAlignment = Enum.TextXAlignment.Center; brand.TextYAlignment = Enum.TextYAlignment.Center
+-- Orange dot before the title (brand mark)
+local brand = Instance.new("Frame", header)
+brand.AnchorPoint = Vector2.new(0, 0.5); brand.Position = UDim2.new(0, 18, 0.5, 0)
+brand.Size = UDim2.new(0, 8, 0, 8); brand.BackgroundColor3 = C.accent1; brand.BorderSizePixel = 0
+Instance.new("UICorner", brand).CornerRadius = UDim.new(1, 0)
 
--- Title (centered, serif italic for Opulence vibe)
+-- Title: left-aligned, mono, uppercase, bright white
 local title = Instance.new("TextLabel", header)
-title.BackgroundTransparency = 1; title.AnchorPoint = Vector2.new(0.5, 0.5)
-title.Position = UDim2.new(0.5, 0, 0.5, 0); title.Size = UDim2.new(0, 400, 0, 36)
-title.Text = "Tap Sim Reborn"; title.TextColor3 = C.accent3
-title.Font = Enum.Font.Antique; title.TextSize = 26
-title.TextXAlignment = Enum.TextXAlignment.Center; title.TextYAlignment = Enum.TextYAlignment.Center
-local titleGrad = Instance.new("UIGradient", title)
-titleGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, C.accent3),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 230, 190)),
-    ColorSequenceKeypoint.new(1, C.accent1),
-})
-titleGrad.Rotation = 15
+title.BackgroundTransparency = 1; title.AnchorPoint = Vector2.new(0, 0.5)
+title.Position = UDim2.new(0, 36, 0.5, 0); title.Size = UDim2.new(0, 400, 0, 24)
+title.Text = "TAP SIM REBORN"; title.TextColor3 = C.text
+title.Font = Enum.Font.Code; title.TextSize = 15
+title.TextXAlignment = Enum.TextXAlignment.Left; title.TextYAlignment = Enum.TextYAlignment.Center
 
--- Hidden page label (kept as upvalue reference for switchTo compatibility; invisible)
+-- No decorative title gradient (Monochrome has no gradients)
+local titleGrad = Instance.new("UIGradient", title)
+titleGrad.Color = ColorSequence.new(C.text)
+
+-- Hidden page label (compat shim for switchTo)
 local pageLabel = Instance.new("TextLabel", header)
 pageLabel.BackgroundTransparency = 1; pageLabel.Visible = false
 pageLabel.Text = ""; pageLabel.Size = UDim2.new(0, 0, 0, 0)
 
--- Accent line: short centered glow line (candle-lit divider)
+-- Thin hairline divider under the header
 local accentLine = Instance.new("Frame", header)
-accentLine.Size = UDim2.new(0, 80, 0, 1); accentLine.AnchorPoint = Vector2.new(0.5, 0)
-accentLine.Position = UDim2.new(0.5, 0, 1, -4); accentLine.BackgroundColor3 = C.accent1
+accentLine.Size = UDim2.new(1, 0, 0, 1); accentLine.AnchorPoint = Vector2.new(0, 1)
+accentLine.Position = UDim2.new(0, 0, 1, 0); accentLine.BackgroundColor3 = C.border
 accentLine.BorderSizePixel = 0
-local lineGrad = Instance.new("UIGradient", accentLine)
-lineGrad.Transparency = NumberSequence.new({
-    NumberSequenceKeypoint.new(0,   1),
-    NumberSequenceKeypoint.new(0.3, 0),
-    NumberSequenceKeypoint.new(0.7, 0),
-    NumberSequenceKeypoint.new(1,   1),
-})
--- Soft glow halo around the accent line
-local lineGlow = Instance.new("UIStroke", accentLine)
-lineGlow.Color = C.accent1; lineGlow.Thickness = 3; lineGlow.Transparency = 0.7
 
 local function headerBtn(x, text, hoverColor, onClick)
     local b = Instance.new("TextButton", header)
-    b.Size = UDim2.new(0, 30, 0, 30)
+    b.Size = UDim2.new(0, 26, 0, 26)
     b.AnchorPoint = Vector2.new(0, 0.5); b.Position = UDim2.new(1, x, 0.5, 0)
-    b.BackgroundColor3 = C.card; b.Text = text; b.TextColor3 = C.textDim
-    b.Font = Enum.Font.GothamBold; b.TextSize = 16; b.AutoButtonColor = false
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
-    local st = Instance.new("UIStroke", b); st.Color = C.border; st.Thickness = 1; st.Transparency = 0.5
-    b.MouseEnter:Connect(function() tween(b, { BackgroundColor3 = hoverColor }); b.TextColor3 = Color3.new(1,1,1) end)
-    b.MouseLeave:Connect(function() tween(b, { BackgroundColor3 = C.card }); b.TextColor3 = C.textDim end)
+    b.BackgroundColor3 = Color3.new(0,0,0); b.BackgroundTransparency = 1
+    b.Text = text; b.TextColor3 = C.muted
+    b.Font = Enum.Font.Code; b.TextSize = 14; b.AutoButtonColor = false
+    local st = Instance.new("UIStroke", b); st.Color = C.border; st.Thickness = 1; st.Transparency = 0
+    b.MouseEnter:Connect(function()
+        tween(b, { BackgroundTransparency = 0.85 }); tween(st, { Color = hoverColor, Transparency = 0 })
+        b.TextColor3 = hoverColor
+    end)
+    b.MouseLeave:Connect(function()
+        tween(b, { BackgroundTransparency = 1 }); tween(st, { Color = C.border, Transparency = 0 })
+        b.TextColor3 = C.muted
+    end)
     b.MouseButton1Click:Connect(onClick)
     return b
 end
@@ -301,66 +289,60 @@ body.BackgroundTransparency = 1
 
 local minimized = false
 local savedMainSize = main.Size
-headerBtn(-80, "–", C.cardAlt, function()
+headerBtn(-72, "–", C.accent1, function()
     minimized = not minimized
     if minimized then
         body.Visible = false
-        tween(main, { Size = UDim2.new(0, 320, 0, 52) }, 0.25)
+        tween(main, { Size = UDim2.new(0, 320, 0, 44) }, 0.25)
         tween(header, { Size = UDim2.new(1, 0, 1, 0) }, 0.25)
-        tween(shadowLayer, { BackgroundTransparency = 1 }, 0.2)
-        tween(title, { TextSize = 14 }, 0.2)
         tween(accentLine, { BackgroundTransparency = 1 }, 0.2)
     else
         tween(main, { Size = savedMainSize }, 0.25)
         tween(header, { Size = UDim2.new(1, 0, 0, 72) }, 0.25)
-        tween(shadowLayer, { BackgroundTransparency = 0.9 }, 0.2)
-        tween(title, { TextSize = 20 }, 0.2)
         tween(accentLine, { BackgroundTransparency = 0 }, 0.2)
         task.wait(0.25)
         body.Visible = true
     end
 end)
-headerBtn(-42, "×", C.bad, function() gui:Destroy(); shadowLayer:Destroy() end)
+headerBtn(-38, "×", C.bad, function() gui:Destroy(); shadowLayer:Destroy() end)
 
 -- Static subtle angled gradient (no animation = cleaner look + zero FPS cost)
 titleGrad.Rotation = 25
 
 local sidebar = Instance.new("Frame", body)
-sidebar.Size = UDim2.new(0, 168, 1, 0); sidebar.BackgroundColor3 = C.sidebar; sidebar.BorderSizePixel = 0
-Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 14)
-local sStroke = Instance.new("UIStroke", sidebar); sStroke.Color = C.border; sStroke.Thickness = 1; sStroke.Transparency = 0.75
+sidebar.Size = UDim2.new(0, 150, 1, 0); sidebar.BackgroundTransparency = 1; sidebar.BorderSizePixel = 0
+-- Right-edge hairline divider between sidebar and content
+local sDivider = Instance.new("Frame", sidebar)
+sDivider.Size = UDim2.new(0, 1, 1, 0); sDivider.Position = UDim2.new(1, 0, 0, 0)
+sDivider.BackgroundColor3 = C.border; sDivider.BorderSizePixel = 0
 local sp = Instance.new("UIPadding", sidebar)
-sp.PaddingTop = UDim.new(0, 14); sp.PaddingLeft = UDim.new(0, 10); sp.PaddingRight = UDim.new(0, 10); sp.PaddingBottom = UDim.new(0, 14)
-local sl = Instance.new("UIListLayout", sidebar); sl.Padding = UDim.new(0, 4); sl.SortOrder = Enum.SortOrder.LayoutOrder
+sp.PaddingTop = UDim.new(0, 10); sp.PaddingLeft = UDim.new(0, 6); sp.PaddingRight = UDim.new(0, 6); sp.PaddingBottom = UDim.new(0, 10)
+local sl = Instance.new("UIListLayout", sidebar); sl.Padding = UDim.new(0, 2); sl.SortOrder = Enum.SortOrder.LayoutOrder
 
 -- Nav section label (small serif eyebrow)
 local navLabel = Instance.new("TextLabel", sidebar)
 navLabel.LayoutOrder = -2; navLabel.BackgroundTransparency = 1
-navLabel.Size = UDim2.new(1, 0, 0, 18)
-navLabel.Text = "— spells & sundries —"; navLabel.TextColor3 = C.muted
-navLabel.Font = Enum.Font.Antique; navLabel.TextSize = 11
-navLabel.TextXAlignment = Enum.TextXAlignment.Center
+navLabel.Size = UDim2.new(1, 0, 0, 14); navLabel.Visible = false  -- not needed in Monochrome
+navLabel.Text = ""; navLabel.TextColor3 = C.muted
+navLabel.Font = Enum.Font.Code; navLabel.TextSize = 9
 local navSpacer = Instance.new("Frame", sidebar)
 navSpacer.LayoutOrder = -1; navSpacer.BackgroundTransparency = 1
-navSpacer.Size = UDim2.new(1, 0, 0, 6)
+navSpacer.Size = UDim2.new(1, 0, 0, 2)
 
 local content = Instance.new("Frame", body)
-content.Position = UDim2.new(0, 180, 0, 0); content.Size = UDim2.new(1, -180, 1, 0)
-content.BackgroundColor3 = C.panel; content.BorderSizePixel = 0
-Instance.new("UICorner", content).CornerRadius = UDim.new(0, 14)
+content.Position = UDim2.new(0, 160, 0, 0); content.Size = UDim2.new(1, -160, 1, 0)
+content.BackgroundTransparency = 1; content.BorderSizePixel = 0
 content.ClipsDescendants = true
-local cStroke = Instance.new("UIStroke", content); cStroke.Color = C.border; cStroke.Thickness = 1; cStroke.Transparency = 0.85
 
 local pages, tabButtons, currentPage = {}, {}, nil
 local function switchTo(name)
     for n, p in pairs(pages) do p.Visible = (n == name) end
     for n, b in pairs(tabButtons) do
         local active = (n == name)
-        tween(b.frame, { BackgroundColor3 = active and C.accent2 or C.sidebar, BackgroundTransparency = active and 0.78 or 0 }, 0.15)
-        tween(b.stroke, { Transparency = active and 0.5 or 1, Color = active and C.accent1 or C.border }, 0.15)
-        b.label.TextColor3 = active and C.accent3 or C.textDim
+        b.frame.BackgroundTransparency = 1
+        b.label.TextColor3 = active and C.text or C.muted
         b.icon.TextColor3 = active and C.accent1 or C.muted
-        tween(b.bar, { BackgroundTransparency = active and 0 or 1, Size = active and UDim2.new(0,2,0,22) or UDim2.new(0,2,0,0) }, 0.2)
+        tween(b.bar, { BackgroundTransparency = active and 0 or 1 }, 0.15)
     end
     currentPage = name
 end
@@ -369,24 +351,24 @@ local tabOrder = 0
 local function makeTab(name, icon)
     tabOrder = tabOrder + 1
     local f = Instance.new("TextButton", sidebar)
-    f.Size = UDim2.new(1, 0, 0, 38); f.BackgroundColor3 = C.sidebar
+    f.Size = UDim2.new(1, 0, 0, 32); f.BackgroundColor3 = Color3.new(0,0,0); f.BackgroundTransparency = 1
     f.BorderSizePixel = 0; f.Text = ""; f.AutoButtonColor = false; f.LayoutOrder = tabOrder
-    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
-    local stroke = Instance.new("UIStroke", f); stroke.Color = C.accent1; stroke.Thickness = 1; stroke.Transparency = 1
+    -- Left border — the only active indicator
     local bar = Instance.new("Frame", f)
-    bar.Size = UDim2.new(0, 2, 0, 0); bar.Position = UDim2.new(0, 0, 0.5, 0); bar.AnchorPoint = Vector2.new(0, 0.5)
+    bar.Size = UDim2.new(0, 2, 1, -6); bar.Position = UDim2.new(0, 0, 0.5, 0); bar.AnchorPoint = Vector2.new(0, 0.5)
     bar.BackgroundColor3 = C.accent1; bar.BorderSizePixel = 0; bar.BackgroundTransparency = 1
-    Instance.new("UICorner", bar).CornerRadius = UDim.new(1, 0)
+    local stroke = Instance.new("UIStroke", f); stroke.Transparency = 1  -- unused in mono
     local ic = Instance.new("TextLabel", f)
-    ic.BackgroundTransparency = 1; ic.Position = UDim2.new(0, 12, 0, 0); ic.Size = UDim2.new(0, 22, 1, 0)
-    ic.Text = icon; ic.TextColor3 = C.muted; ic.Font = Enum.Font.GothamBold; ic.TextSize = 15
+    ic.BackgroundTransparency = 1; ic.Position = UDim2.new(0, 10, 0, 0); ic.Size = UDim2.new(0, 20, 1, 0)
+    ic.Text = icon; ic.TextColor3 = C.muted; ic.Font = Enum.Font.Code; ic.TextSize = 14
+    ic.TextXAlignment = Enum.TextXAlignment.Center
     local lab = Instance.new("TextLabel", f)
-    lab.BackgroundTransparency = 1; lab.Position = UDim2.new(0, 40, 0, 0); lab.Size = UDim2.new(1, -46, 1, 0)
-    lab.Text = name; lab.TextColor3 = C.textDim; lab.Font = Enum.Font.Antique; lab.TextSize = 14
+    lab.BackgroundTransparency = 1; lab.Position = UDim2.new(0, 34, 0, 0); lab.Size = UDim2.new(1, -40, 1, 0)
+    lab.Text = name:upper(); lab.TextColor3 = C.muted; lab.Font = Enum.Font.Code; lab.TextSize = 12
     lab.TextXAlignment = Enum.TextXAlignment.Left
     tabButtons[name] = { frame = f, label = lab, bar = bar, icon = ic, stroke = stroke }
-    f.MouseEnter:Connect(function() if currentPage ~= name then tween(f, { BackgroundColor3 = C.cardAlt }) end end)
-    f.MouseLeave:Connect(function() if currentPage ~= name then tween(f, { BackgroundColor3 = C.sidebar }) end end)
+    f.MouseEnter:Connect(function() if currentPage ~= name then lab.TextColor3 = C.textDim end end)
+    f.MouseLeave:Connect(function() if currentPage ~= name then lab.TextColor3 = C.muted end end)
     f.MouseButton1Click:Connect(function() switchTo(name) end)
 end
 
@@ -404,35 +386,23 @@ end
 
 local function sectionHeader(parent, text)
     local wrap = Instance.new("Frame", parent); wrap.BackgroundTransparency = 1
-    wrap.Size = UDim2.new(1, 0, 0, 22)
-    -- Candle flame marker + italic serif label — ornate, Halloween-opulent
-    local flame = Instance.new("TextLabel", wrap); flame.BackgroundTransparency = 1
-    flame.Position = UDim2.new(0, 0, 0, 0); flame.Size = UDim2.new(0, 14, 1, 0)
-    flame.Text = "✦"; flame.TextColor3 = C.accent1
-    flame.Font = Enum.Font.GothamBold; flame.TextSize = 11
-    flame.TextXAlignment = Enum.TextXAlignment.Center; flame.TextYAlignment = Enum.TextYAlignment.Center
+    wrap.Size = UDim2.new(1, 0, 0, 18)
+    -- "// SECTION NAME" in orange mono
     local l = Instance.new("TextLabel", wrap); l.BackgroundTransparency = 1
-    l.Position = UDim2.new(0, 18, 0, 0); l.Size = UDim2.new(1, -18, 1, 0)
-    l.Text = text; l.TextColor3 = C.accent3
-    l.Font = Enum.Font.Antique; l.TextSize = 13; l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Position = UDim2.new(0, 0, 0, 0); l.Size = UDim2.new(1, 0, 1, 0)
+    l.Text = "// " .. text; l.TextColor3 = C.accent1
+    l.Font = Enum.Font.Code; l.TextSize = 11; l.TextXAlignment = Enum.TextXAlignment.Left
 end
 
 local function card(parent)
-    local c = Instance.new("Frame", parent); c.BackgroundColor3 = C.card; c.BorderSizePixel = 0
+    local c = Instance.new("Frame", parent); c.BackgroundTransparency = 1; c.BorderSizePixel = 0
     c.Size = UDim2.new(1, 0, 0, 40); c.AutomaticSize = Enum.AutomaticSize.Y
     c.ClipsDescendants = true
-    Instance.new("UICorner", c).CornerRadius = UDim.new(0, 10)
-    -- Warm plum gradient fill, candle-lit top edge
-    local grad = Instance.new("UIGradient", c)
-    grad.Rotation = 90
-    grad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(42, 22, 50)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(24, 12, 30)),
-    })
-    local st = Instance.new("UIStroke", c); st.Color = C.border; st.Thickness = 1; st.Transparency = 0.55
+    -- Hairline border, no fill (card reads as a bounded region, not an elevated surface)
+    local st = Instance.new("UIStroke", c); st.Color = C.border; st.Thickness = 1; st.Transparency = 0
     local pd = Instance.new("UIPadding", c)
-    pd.PaddingTop = UDim.new(0, 14); pd.PaddingBottom = UDim.new(0, 14); pd.PaddingLeft = UDim.new(0, 14); pd.PaddingRight = UDim.new(0, 14)
-    local l = Instance.new("UIListLayout", c); l.Padding = UDim.new(0, 10); l.SortOrder = Enum.SortOrder.LayoutOrder
+    pd.PaddingTop = UDim.new(0, 12); pd.PaddingBottom = UDim.new(0, 12); pd.PaddingLeft = UDim.new(0, 14); pd.PaddingRight = UDim.new(0, 14)
+    local l = Instance.new("UIListLayout", c); l.Padding = UDim.new(0, 8); l.SortOrder = Enum.SortOrder.LayoutOrder
     return c
 end
 
@@ -440,28 +410,29 @@ local function toggleRow(parent, label, desc, initial, callback, setterKey)
     local f = Instance.new("Frame", parent); f.BackgroundTransparency = 1; f.Size = UDim2.new(1, 0, 0, 46)
     local lab = Instance.new("TextLabel", f); lab.BackgroundTransparency = 1
     lab.Size = UDim2.new(1, -60, 0, 18); lab.Text = label; lab.TextColor3 = C.text
-    lab.Font = Enum.Font.GothamBold; lab.TextSize = 13; lab.TextXAlignment = Enum.TextXAlignment.Left
+    lab.Font = Enum.Font.Code; lab.TextSize = 13; lab.TextXAlignment = Enum.TextXAlignment.Left
     if desc then
         local d = Instance.new("TextLabel", f); d.BackgroundTransparency = 1
         d.Size = UDim2.new(1, -60, 0, 14); d.Position = UDim2.new(0, 0, 0, 22)
-        d.Text = desc; d.TextColor3 = C.muted; d.Font = Enum.Font.Gotham; d.TextSize = 11
+        d.Text = desc; d.TextColor3 = C.muted; d.Font = Enum.Font.Code; d.TextSize = 11
         d.TextXAlignment = Enum.TextXAlignment.Left
     end
+    -- Monochrome toggle: square outlined track, solid orange square inside when ON
     local track = Instance.new("TextButton", f)
-    track.Size = UDim2.new(0, 46, 0, 24); track.Position = UDim2.new(1, -46, 0.5, -12)
+    track.Size = UDim2.new(0, 36, 0, 20); track.Position = UDim2.new(1, -36, 0.5, -10)
     track.Text = ""; track.AutoButtonColor = false
-    track.BackgroundColor3 = initial and C.accent1 or C.cardAlt; track.BorderSizePixel = 0
-    Instance.new("UICorner", track).CornerRadius = UDim.new(1, 0)
+    track.BackgroundTransparency = 1; track.BorderSizePixel = 0
+    local tStroke = Instance.new("UIStroke", track); tStroke.Color = C.border; tStroke.Thickness = 1; tStroke.Transparency = 0
     local knob = Instance.new("Frame", track)
-    knob.Size = UDim2.new(0, 18, 0, 18)
-    knob.Position = initial and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
-    knob.BackgroundColor3 = Color3.new(1,1,1); knob.BorderSizePixel = 0
-    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+    knob.Size = UDim2.new(0, 14, 0, 14)
+    knob.AnchorPoint = Vector2.new(0, 0.5)
+    knob.Position = initial and UDim2.new(0, 19, 0.5, 0) or UDim2.new(0, 3, 0.5, 0)
+    knob.BackgroundColor3 = initial and C.accent1 or C.cardAlt; knob.BorderSizePixel = 0
     local state = initial
     local function setVisual(v)
         state = v and true or false
-        tween(track, { BackgroundColor3 = state and C.accent1 or C.cardAlt }, 0.2)
-        tween(knob, { Position = state and UDim2.new(1,-21,0.5,-9) or UDim2.new(0,3,0.5,-9) }, 0.25, Enum.EasingStyle.Back)
+        tween(knob, { Position = state and UDim2.new(0,19,0.5,0) or UDim2.new(0,3,0.5,0), BackgroundColor3 = state and C.accent1 or C.cardAlt }, 0.18)
+        tween(tStroke, { Color = state and C.accent1 or C.border }, 0.18)
     end
     track.MouseButton1Click:Connect(function() setVisual(not state); callback(state) end)
     if setterKey then UISetters[setterKey] = function(v) setVisual(v); callback(state) end end
@@ -470,20 +441,20 @@ end
 local function tinyLabel(parent, text)
     local l = Instance.new("TextLabel", parent); l.BackgroundTransparency = 1
     l.Size = UDim2.new(1, 0, 0, 14); l.Text = text; l.TextColor3 = C.muted
-    l.Font = Enum.Font.GothamBold; l.TextSize = 10; l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Font = Enum.Font.Code; l.TextSize = 10; l.TextXAlignment = Enum.TextXAlignment.Left
 end
 
 local function makeTB(parent, placeholder, initial, onChange, setterKey)
     local f = Instance.new("Frame", parent)
     f.Size = UDim2.new(1, 0, 0, 36); f.BackgroundColor3 = C.cardAlt; f.BorderSizePixel = 0
     f.ClipsDescendants = true
-    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 0)
     local st = Instance.new("UIStroke", f); st.Color = C.border; st.Thickness = 1; st.Transparency = 0.7
     local tb = Instance.new("TextBox", f)
     tb.Size = UDim2.new(1, -20, 1, 0); tb.Position = UDim2.new(0, 10, 0, 0)
     tb.BackgroundTransparency = 1; tb.Text = initial or ""
     tb.PlaceholderText = placeholder; tb.TextColor3 = C.text
-    tb.PlaceholderColor3 = C.muted; tb.Font = Enum.Font.Gotham; tb.TextSize = 11
+    tb.PlaceholderColor3 = C.muted; tb.Font = Enum.Font.Code; tb.TextSize = 11
     tb.ClearTextOnFocus = false; tb.TextXAlignment = Enum.TextXAlignment.Left
     tb.TextTruncate = Enum.TextTruncate.AtEnd
     tb.Focused:Connect(function() tween(st, { Color = C.accent1, Transparency = 0.3 }) end)
@@ -496,8 +467,8 @@ local function primaryBtn(parent, label, onClick)
     local b = Instance.new("TextButton", parent)
     b.Size = UDim2.new(1, 0, 0, 36); b.BackgroundColor3 = C.accent1; b.BorderSizePixel = 0
     b.Text = label; b.TextColor3 = Color3.new(1,1,1)
-    b.Font = Enum.Font.GothamBlack; b.TextSize = 12; b.AutoButtonColor = false
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+    b.Font = Enum.Font.Code; b.TextSize = 12; b.AutoButtonColor = false
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 0)
     local gr = Instance.new("UIGradient", b)
     gr.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, C.accent1), ColorSequenceKeypoint.new(0.5, C.accent3), ColorSequenceKeypoint.new(1, C.accent2)})
     gr.Rotation = 45
@@ -522,8 +493,8 @@ local function segmented(parent, options, initial, onSelect, setterKey)
     for i, opt in ipairs(options) do
         local b = Instance.new("TextButton", row)
         b.Size = UDim2.new(1/#options, -5, 1, 0); b.Text = opt
-        b.Font = Enum.Font.GothamBold; b.TextSize = 11; b.BorderSizePixel = 0; b.AutoButtonColor = false
-        Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+        b.Font = Enum.Font.Code; b.TextSize = 11; b.BorderSizePixel = 0; b.AutoButtonColor = false
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0, 0)
         buttons[opt] = b
         b.MouseButton1Click:Connect(function() onSelect(opt); refresh(opt) end)
     end
@@ -544,8 +515,8 @@ local function slotRow(parent, currentSlot, onSelect, setterKey)
     for i = 1, 3 do
         local b = Instance.new("TextButton", row)
         b.Size = UDim2.new(0, 84, 1, 0); b.Text = "SLOT " .. i
-        b.Font = Enum.Font.GothamBlack; b.TextSize = 12; b.BorderSizePixel = 0; b.AutoButtonColor = false
-        Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+        b.Font = Enum.Font.Code; b.TextSize = 12; b.BorderSizePixel = 0; b.AutoButtonColor = false
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0, 0)
         buttons[i] = b
         b.MouseButton1Click:Connect(function() onSelect(i); refresh(i) end)
     end
@@ -559,7 +530,7 @@ local function dropdown(parent, labelText, tierDot)
     local hdr = Instance.new("TextButton", wrap)
     hdr.Size = UDim2.new(1, 0, 0, 38); hdr.BackgroundColor3 = C.cardAlt
     hdr.BorderSizePixel = 0; hdr.Text = ""; hdr.AutoButtonColor = false
-    Instance.new("UICorner", hdr).CornerRadius = UDim.new(0, 10)
+    Instance.new("UICorner", hdr).CornerRadius = UDim.new(0, 0)
     local st = Instance.new("UIStroke", hdr); st.Color = C.border; st.Thickness = 1; st.Transparency = 0.5
     if tierDot then
         local d = Instance.new("Frame", hdr)
@@ -570,7 +541,7 @@ local function dropdown(parent, labelText, tierDot)
     local hLabel = Instance.new("TextLabel", hdr)
     hLabel.BackgroundTransparency = 1; hLabel.Position = UDim2.new(0, tierDot and 32 or 14, 0, 0)
     hLabel.Size = UDim2.new(1, -50, 1, 0); hLabel.Text = labelText; hLabel.TextColor3 = C.text
-    hLabel.Font = Enum.Font.Antique; hLabel.TextSize = 13; hLabel.TextXAlignment = Enum.TextXAlignment.Left
+    hLabel.Font = Enum.Font.Code; hLabel.TextSize = 13; hLabel.TextXAlignment = Enum.TextXAlignment.Left
     local chevWrap = Instance.new("Frame", hdr)
     chevWrap.AnchorPoint = Vector2.new(1, 0.5); chevWrap.Position = UDim2.new(1, -14, 0.5, 0)
     chevWrap.Size = UDim2.new(0, 18, 0, 18); chevWrap.BackgroundTransparency = 1
@@ -606,7 +577,7 @@ end
 local function checkRow(parent, name, dotColor, getState, setState)
     local row = Instance.new("TextButton", parent); row.BackgroundColor3 = C.card
     row.BorderSizePixel = 0; row.Size = UDim2.new(1, 0, 0, 34); row.Text = ""; row.AutoButtonColor = false
-    Instance.new("UICorner", row).CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", row).CornerRadius = UDim.new(0, 0)
     local dot = Instance.new("Frame", row)
     dot.Size = UDim2.new(0, 8, 0, 8); dot.Position = UDim2.new(0, 14, 0.5, -4)
     dot.BackgroundColor3 = dotColor or C.muted; dot.BorderSizePixel = 0
@@ -614,7 +585,7 @@ local function checkRow(parent, name, dotColor, getState, setState)
     local lab = Instance.new("TextLabel", row)
     lab.BackgroundTransparency = 1; lab.Position = UDim2.new(0, 32, 0, 0); lab.Size = UDim2.new(1, -70, 1, 0)
     lab.Text = name; lab.TextColor3 = C.text
-    lab.Font = Enum.Font.GothamMedium; lab.TextSize = 12; lab.TextXAlignment = Enum.TextXAlignment.Left
+    lab.Font = Enum.Font.Code; lab.TextSize = 12; lab.TextXAlignment = Enum.TextXAlignment.Left
     local pill = Instance.new("Frame", row)
     pill.Size = UDim2.new(0, 22, 0, 22); pill.Position = UDim2.new(1, -32, 0.5, -11)
     pill.BackgroundColor3 = C.cardAlt; pill.BorderSizePixel = 0
@@ -646,14 +617,14 @@ local function statusBar(parent)
     local f = Instance.new("Frame", parent); f.BackgroundColor3 = C.cardAlt; f.BorderSizePixel = 0
     f.Size = UDim2.new(1, 0, 0, 34); f.ClipsDescendants = true
     f.Visible = false
-    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 0)
     local dot = Instance.new("Frame", f)
     dot.Size = UDim2.new(0, 8, 0, 8); dot.Position = UDim2.new(0, 14, 0.5, -4)
     dot.BackgroundColor3 = C.muted; dot.BorderSizePixel = 0
     Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
     local l = Instance.new("TextLabel", f)
     l.BackgroundTransparency = 1; l.Position = UDim2.new(0, 30, 0, 0); l.Size = UDim2.new(1, -38, 1, 0)
-    l.Text = ""; l.TextColor3 = C.textDim; l.Font = Enum.Font.GothamMedium; l.TextSize = 11
+    l.Text = ""; l.TextColor3 = C.textDim; l.Font = Enum.Font.Code; l.TextSize = 11
     l.TextXAlignment = Enum.TextXAlignment.Left; l.TextTruncate = Enum.TextTruncate.AtEnd
     return l, dot
 end
@@ -739,7 +710,7 @@ local pageMerch = makePage("Merchant")
 -- Hero banner
 local banner = Instance.new("Frame", pageMerch)
 banner.Size = UDim2.new(1, 0, 0, 92); banner.BackgroundColor3 = C.panel; banner.BorderSizePixel = 0
-Instance.new("UICorner", banner).CornerRadius = UDim.new(0, 14)
+Instance.new("UICorner", banner).CornerRadius = UDim.new(0, 0)
 local bannerStroke = Instance.new("UIStroke", banner)
 bannerStroke.Color = C.accent3; bannerStroke.Thickness = 1.2; bannerStroke.Transparency = 0.3
 local bannerGrad = Instance.new("UIGradient", banner)
@@ -751,7 +722,7 @@ bannerGrad.Color = ColorSequence.new{
 bannerGrad.Rotation = 25
 local pumpkin = Instance.new("TextLabel", banner)
 pumpkin.BackgroundTransparency = 1; pumpkin.Position = UDim2.new(0, 14, 0, 6); pumpkin.Size = UDim2.new(0, 60, 0, 36)
-pumpkin.Text = "🎃"; pumpkin.TextSize = 30; pumpkin.Font = Enum.Font.GothamBold
+pumpkin.Text = "🎃"; pumpkin.TextSize = 30; pumpkin.Font = Enum.Font.Code
 pumpkin.TextColor3 = Color3.fromRGB(255, 160, 60); pumpkin.TextXAlignment = Enum.TextXAlignment.Center
 pumpkin.TextYAlignment = Enum.TextYAlignment.Center
 -- Pill: top-right, compact
@@ -766,25 +737,25 @@ candyIcon.BackgroundTransparency = 1; candyIcon.Position = UDim2.new(0, 4, 0.5, 
 candyIcon.Image = ""; candyIcon.ScaleType = Enum.ScaleType.Fit
 local candyAmt = Instance.new("TextLabel", candyPill)
 candyAmt.BackgroundTransparency = 1; candyAmt.Position = UDim2.new(0, 28, 0, 0); candyAmt.Size = UDim2.new(1, -34, 1, 0)
-candyAmt.Text = "—"; candyAmt.TextColor3 = C.text; candyAmt.Font = Enum.Font.GothamBold; candyAmt.TextSize = 12
+candyAmt.Text = "—"; candyAmt.TextColor3 = C.text; candyAmt.Font = Enum.Font.Code; candyAmt.TextSize = 12
 candyAmt.TextXAlignment = Enum.TextXAlignment.Left
 
 -- Title row (next to pumpkin, pill is top-right)
 local bTitle = Instance.new("TextLabel", banner)
 bTitle.BackgroundTransparency = 1; bTitle.Position = UDim2.new(0, 82, 0, 10); bTitle.Size = UDim2.new(1, -82 - PILL_W - 20, 0, 22)
 bTitle.Text = "MERCHANT"; bTitle.TextColor3 = C.text
-bTitle.Font = Enum.Font.GothamBold; bTitle.TextSize = 18; bTitle.TextXAlignment = Enum.TextXAlignment.Left
+bTitle.Font = Enum.Font.Code; bTitle.TextSize = 18; bTitle.TextXAlignment = Enum.TextXAlignment.Left
 bTitle.TextTruncate = Enum.TextTruncate.AtEnd
 -- Full-width subtitle rows below
 local bSub = Instance.new("TextLabel", banner)
 bSub.BackgroundTransparency = 1; bSub.Position = UDim2.new(0, 16, 0, 46); bSub.Size = UDim2.new(1, -28, 0, 16)
 bSub.Text = "auto-buy halloween shop items"
-bSub.TextColor3 = C.textDim; bSub.Font = Enum.Font.GothamMedium; bSub.TextSize = 11
+bSub.TextColor3 = C.textDim; bSub.Font = Enum.Font.Code; bSub.TextSize = 11
 bSub.TextXAlignment = Enum.TextXAlignment.Left; bSub.TextTruncate = Enum.TextTruncate.AtEnd
 local bHint = Instance.new("TextLabel", banner)
 bHint.BackgroundTransparency = 1; bHint.Position = UDim2.new(0, 16, 0, 64); bHint.Size = UDim2.new(1, -28, 0, 14)
 bHint.Text = "respects daily limits"
-bHint.TextColor3 = C.muted; bHint.Font = Enum.Font.Gotham; bHint.TextSize = 10
+bHint.TextColor3 = C.muted; bHint.Font = Enum.Font.Code; bHint.TextSize = 10
 bHint.TextXAlignment = Enum.TextXAlignment.Left; bHint.TextTruncate = Enum.TextTruncate.AtEnd
 
 -- Controls
@@ -800,9 +771,9 @@ btnLayout.SortOrder = Enum.SortOrder.LayoutOrder
 local function miniBtn(text, color, cb)
     local b = Instance.new("TextButton", btnRow)
     b.Size = UDim2.new(0, 110, 1, 0); b.BackgroundColor3 = C.cardAlt; b.BorderSizePixel = 0
-    b.Text = text; b.TextColor3 = color; b.Font = Enum.Font.GothamBold; b.TextSize = 11
+    b.Text = text; b.TextColor3 = color; b.Font = Enum.Font.Code; b.TextSize = 11
     b.AutoButtonColor = false
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 0)
     local st = Instance.new("UIStroke", b); st.Color = color; st.Thickness = 1; st.Transparency = 0.6
     b.MouseEnter:Connect(function() tween(b, { BackgroundColor3 = C.hover }); tween(st, { Transparency = 0.2 }) end)
     b.MouseLeave:Connect(function() tween(b, { BackgroundColor3 = C.cardAlt }); tween(st, { Transparency = 0.6 }) end)
@@ -822,29 +793,29 @@ local function makeItemCard(it)
     local card = Instance.new("TextButton", itemsWrap)
     card.Size = UDim2.new(1, 0, 0, 86); card.BackgroundColor3 = C.card; card.BorderSizePixel = 0
     card.Text = ""; card.AutoButtonColor = false
-    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 12)
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 0)
     local st = Instance.new("UIStroke", card); st.Color = C.border; st.Thickness = 1; st.Transparency = 0.5
     -- left accent bar
     local accent = Instance.new("Frame", card)
     accent.Size = UDim2.new(0, 4, 1, -16); accent.Position = UDim2.new(0, 8, 0, 8)
     accent.BackgroundColor3 = tierCol; accent.BorderSizePixel = 0
-    Instance.new("UICorner", accent).CornerRadius = UDim.new(0, 2)
+    Instance.new("UICorner", accent).CornerRadius = UDim.new(0, 0)
     -- name
     local nameLbl = Instance.new("TextLabel", card)
     nameLbl.BackgroundTransparency = 1; nameLbl.Position = UDim2.new(0, 22, 0, 10); nameLbl.Size = UDim2.new(1, -200, 0, 20)
     nameLbl.Text = it.name; nameLbl.TextColor3 = C.text
-    nameLbl.Font = Enum.Font.GothamBold; nameLbl.TextSize = 14; nameLbl.TextXAlignment = Enum.TextXAlignment.Left
+    nameLbl.Font = Enum.Font.Code; nameLbl.TextSize = 14; nameLbl.TextXAlignment = Enum.TextXAlignment.Left
     -- tag badge
     local tag = Instance.new("Frame", card)
     tag.Position = UDim2.new(0, 22, 0, 32); tag.Size = UDim2.new(0, 0, 0, 16); tag.AutomaticSize = Enum.AutomaticSize.X
     tag.BackgroundColor3 = tierCol; tag.BackgroundTransparency = 0.75; tag.BorderSizePixel = 0
-    Instance.new("UICorner", tag).CornerRadius = UDim.new(0, 4)
+    Instance.new("UICorner", tag).CornerRadius = UDim.new(0, 0)
     local tagPad = Instance.new("UIPadding", tag)
     tagPad.PaddingLeft = UDim.new(0, 6); tagPad.PaddingRight = UDim.new(0, 6)
     local tagLbl = Instance.new("TextLabel", tag)
     tagLbl.BackgroundTransparency = 1; tagLbl.Size = UDim2.new(0, 0, 1, 0); tagLbl.AutomaticSize = Enum.AutomaticSize.X
     tagLbl.Text = it.tag; tagLbl.TextColor3 = tierCol
-    tagLbl.Font = Enum.Font.GothamBold; tagLbl.TextSize = 9
+    tagLbl.Font = Enum.Font.Code; tagLbl.TextSize = 9
     -- chips
     local chipRow = Instance.new("Frame", card); chipRow.BackgroundTransparency = 1
     chipRow.Position = UDim2.new(0, 22, 0, 56); chipRow.Size = UDim2.new(1, -200, 0, 20)
@@ -854,13 +825,13 @@ local function makeItemCard(it)
         local chip = Instance.new("Frame", chipRow)
         chip.Size = UDim2.new(0, 0, 1, 0); chip.AutomaticSize = Enum.AutomaticSize.X
         chip.BackgroundColor3 = C.cardAlt; chip.BorderSizePixel = 0
-        Instance.new("UICorner", chip).CornerRadius = UDim.new(0, 4)
+        Instance.new("UICorner", chip).CornerRadius = UDim.new(0, 0)
         local cp = Instance.new("UIPadding", chip)
         cp.PaddingLeft = UDim.new(0, 8); cp.PaddingRight = UDim.new(0, 8)
         local cl = Instance.new("TextLabel", chip)
         cl.BackgroundTransparency = 1; cl.Size = UDim2.new(0, 0, 1, 0); cl.AutomaticSize = Enum.AutomaticSize.X
         cl.Text = chipTxt; cl.TextColor3 = C.textDim
-        cl.Font = Enum.Font.GothamMedium; cl.TextSize = 10
+        cl.Font = Enum.Font.Code; cl.TextSize = 10
     end
     -- price pill
     local price = Instance.new("Frame", card)
@@ -870,18 +841,18 @@ local function makeItemCard(it)
     local pst = Instance.new("UIStroke", price); pst.Color = C.accent3; pst.Thickness = 1; pst.Transparency = 0.5
     local pIco = Instance.new("TextLabel", price)
     pIco.BackgroundTransparency = 1; pIco.Position = UDim2.new(0, 8, 0, 0); pIco.Size = UDim2.new(0, 14, 1, 0)
-    pIco.Text = "🍬"; pIco.TextSize = 11; pIco.Font = Enum.Font.GothamBold
+    pIco.Text = "🍬"; pIco.TextSize = 11; pIco.Font = Enum.Font.Code
     local pTxt = Instance.new("TextLabel", price)
     pTxt.BackgroundTransparency = 1; pTxt.Position = UDim2.new(0, 24, 0, 0); pTxt.Size = UDim2.new(1, -30, 1, 0)
     pTxt.Text = tostring(it.price); pTxt.TextColor3 = C.text
-    pTxt.Font = Enum.Font.GothamBold; pTxt.TextSize = 12; pTxt.TextXAlignment = Enum.TextXAlignment.Left
+    pTxt.Font = Enum.Font.Code; pTxt.TextSize = 12; pTxt.TextXAlignment = Enum.TextXAlignment.Left
     -- limit label
     if it.limit and it.limit > 0 then
         local lim = Instance.new("TextLabel", card)
         lim.BackgroundTransparency = 1; lim.AnchorPoint = Vector2.new(1, 0)
         lim.Position = UDim2.new(1, -72, 0, 38); lim.Size = UDim2.new(0, 94, 0, 14)
         lim.Text = ("limit %d/day"):format(it.limit); lim.TextColor3 = C.muted
-        lim.Font = Enum.Font.GothamMedium; lim.TextSize = 9; lim.TextXAlignment = Enum.TextXAlignment.Right
+        lim.Font = Enum.Font.Code; lim.TextSize = 9; lim.TextXAlignment = Enum.TextXAlignment.Right
     end
     -- toggle pill (right side)
     local toggle = Instance.new("Frame", card)
@@ -1263,19 +1234,19 @@ for _, island in ipairs(ordered) do
         local b = Instance.new("TextButton", body2)
         b.Size = UDim2.new(1, 0, 0, 34); b.BackgroundColor3 = C.card
         b.Text = ""; b.AutoButtonColor = false; b.BorderSizePixel = 0
-        Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0, 0)
         local st = Instance.new("UIStroke", b); st.Color = C.border; st.Thickness = 1; st.Transparency = 0.7
         local lab = Instance.new("TextLabel", b)
         lab.BackgroundTransparency = 1
         lab.Position = UDim2.new(0, 14, 0, 0); lab.Size = UDim2.new(1, -90, 1, 0)
         lab.Text = e.name; lab.TextColor3 = C.text
-        lab.Font = Enum.Font.GothamBold; lab.TextSize = 12
+        lab.Font = Enum.Font.Code; lab.TextSize = 12
         lab.TextXAlignment = Enum.TextXAlignment.Left
         local price = Instance.new("TextLabel", b)
         price.BackgroundTransparency = 1
         price.Position = UDim2.new(1, -76, 0, 0); price.Size = UDim2.new(0, 64, 1, 0)
         price.Text = priceFmt(e.price); price.TextColor3 = C.accent1
-        price.Font = Enum.Font.GothamBold; price.TextSize = 10
+        price.Font = Enum.Font.Code; price.TextSize = 10
         price.TextXAlignment = Enum.TextXAlignment.Right
         b.MouseEnter:Connect(function() tween(b, { BackgroundColor3 = C.hover }); tween(st, { Color = C.accent1, Transparency = 0.4 }) end)
         b.MouseLeave:Connect(function() tween(b, { BackgroundColor3 = C.card }); tween(st, { Color = C.border, Transparency = 0.7 }) end)
@@ -1348,8 +1319,8 @@ local function miniBtn(parent, text, color, onClick)
     local b = Instance.new("TextButton", parent)
     b.Size = UDim2.new(1/3, -4, 1, 0); b.BackgroundColor3 = color
     b.Text = text; b.TextColor3 = Color3.new(1,1,1)
-    b.Font = Enum.Font.GothamBlack; b.TextSize = 11; b.BorderSizePixel = 0; b.AutoButtonColor = false
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+    b.Font = Enum.Font.Code; b.TextSize = 11; b.BorderSizePixel = 0; b.AutoButtonColor = false
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 0)
     b.MouseButton1Click:Connect(onClick)
 end
 miniBtn(btnRow, "SAVE", C.good, function()
@@ -1378,17 +1349,17 @@ local function refreshList()
         local row = Instance.new("Frame", listBody)
         row.BackgroundColor3 = C.cardAlt; row.BorderSizePixel = 0
         row.Size = UDim2.new(1, 0, 0, 34)
-        Instance.new("UICorner", row).CornerRadius = UDim.new(0, 8)
+        Instance.new("UICorner", row).CornerRadius = UDim.new(0, 0)
         local l = Instance.new("TextLabel", row)
         l.BackgroundTransparency = 1; l.Position = UDim2.new(0, 14, 0, 0); l.Size = UDim2.new(1, -100, 1, 0)
-        l.Text = name; l.TextColor3 = C.text; l.Font = Enum.Font.GothamBold; l.TextSize = 12
+        l.Text = name; l.TextColor3 = C.text; l.Font = Enum.Font.Code; l.TextSize = 12
         l.TextXAlignment = Enum.TextXAlignment.Left
         local loadBtn = Instance.new("TextButton", row)
         loadBtn.Size = UDim2.new(0, 80, 0, 24); loadBtn.Position = UDim2.new(1, -90, 0.5, -12)
         loadBtn.BackgroundColor3 = C.accent1; loadBtn.Text = "LOAD"
-        loadBtn.TextColor3 = Color3.new(1,1,1); loadBtn.Font = Enum.Font.GothamBlack; loadBtn.TextSize = 11
+        loadBtn.TextColor3 = Color3.new(1,1,1); loadBtn.Font = Enum.Font.Code; loadBtn.TextSize = 11
         loadBtn.BorderSizePixel = 0; loadBtn.AutoButtonColor = false
-        Instance.new("UICorner", loadBtn).CornerRadius = UDim.new(0, 6)
+        Instance.new("UICorner", loadBtn).CornerRadius = UDim.new(0, 0)
         loadBtn.MouseButton1Click:Connect(function() loadConfigFile(name) end)
     end
 end
