@@ -9,6 +9,7 @@ local UIS = game:GetService("UserInputService")
 local lp = Players.LocalPlayer
 
 local Knock  = RS.RemoteServices.TrickOrTreatService.RF.Knock
+local ShopBuy = RS.RemoteServices.HalloweenShopService.RF.Purchase
 local Travel = RS.RemoteServices.IslandService.RF.Travel
 local Enc    = RS.RemoteServices.EnchantService.RF
 local Tap    = RS.RemoteServices.TapService.RE.TapRequested
@@ -22,6 +23,7 @@ local EGGS = require(RS.Shared.Pets.LaunchEggConfig)
 local AutoKnock = { enabled = false }
 local AutoEnchant = { enabled = false, slot = 1, wanted = {} }
 local AutoBoss = { enabled = false }
+local AutoShop = { enabled = false, wanted = {} }
 local AntiAFK = { enabled = false }
 local EggHub = { current = nil, autoHatch = true }
 local MenuBind = { key = "RightShift" }
@@ -35,6 +37,30 @@ local TIERED    = { "Power", "Precision", "Renewal", "Fortune", "Payday", "Scave
 local LEGENDARY = { "Frenzy", "Autopilot", "Jackpot", "Prospector", "Four-Leaf", "Golden Touch" }
 local MYTHIC    = { "Greed", "Gambler's Pact" }
 local SECRET    = { "Prismatic Surge", "Secret Hunter", "Celestial Bond" }
+
+local SHOP_ITEMS = {
+    { id = "ImmortalPumpkin",    name = "Immortal Pumpkin",     price = 1500, limit = 1,  tier = "secret",    tag = "SECRET PET",  chips = { "1-in-1,000 Mythical" } },
+    { id = "BloodMoonDial",      name = "Blood Moon Dial",      price = 1200, limit = 1,  tier = "mythic",    tag = "SERVER-WIDE", chips = { "6 min", "x2.5 Secret", "Bloodmoon Pets" } },
+    { id = "OctoIncubator",      name = "Octo Incubator",       price = 1000, limit = 5,  tier = "legendary", tag = "x8 EGG",      chips = { "Boost" } },
+    { id = "ExoticShard",        name = "Exotic Shard",         price = 1000, limit = 5,  tier = "mythic",    tag = "x8 EGG",      chips = { "Mythic Shard" } },
+    { id = "TotemOfSecretLuck",  name = "Totem of Secret Luck", price = 800,  limit = 3,  tier = "secret",    tag = "TOTEM",       chips = { "+5% Secret", "15 min" } },
+    { id = "SecretFruit",        name = "Secret Fruit",         price = 700,  limit = 10, tier = "secret",    tag = "PET XP",      chips = { "+6,000 XP", "x2 Secret" } },
+    { id = "TotemOfLuck",        name = "Totem of Luck",        price = 500,  limit = 5,  tier = "epic",      tag = "TOTEM",       chips = { "+15% Luck", "15 min" } },
+    { id = "RainbowStrawberry",  name = "Rainbow Strawberry",   price = 450,  limit = 10, tier = "legendary", tag = "PET XP",      chips = { "+3,600 XP", "x2 Rainbow" } },
+    { id = "TotemOfHatchSpeed",  name = "Totem of Hatch Speed", price = 400,  limit = 5,  tier = "rare",      tag = "TOTEM",       chips = { "+15% Hatch", "17 min" } },
+    { id = "PetLevels10",        name = "Pet Levels +10",       price = 400,  limit = 10, tier = "legendary", tag = "LEVELS",      chips = { "+10 Levels" } },
+    { id = "LuckPotionII",       name = "Luck Potion II",       price = 300,  limit = 0,  tier = "rare",      tag = "POTION",      chips = { "x3 pack" } },
+    { id = "GoldenApple",        name = "Golden Apple",         price = 250,  limit = 20, tier = "epic",      tag = "ITEM",        chips = { "Golden Boost" } },
+    { id = "TreatBags",          name = "Bag of Treats",        price = 200,  limit = 0,  tier = "rare",      tag = "ITEM",        chips = { "x3 pack" } },
+}
+
+local TIER_COLORS = {
+    rare      = Color3.fromRGB( 90,200,255),
+    epic      = Color3.fromRGB(190,100,230),
+    legendary = Color3.fromRGB(255,185, 70),
+    mythic    = Color3.fromRGB(255, 80,160),
+    secret    = Color3.fromRGB(255,100,110),
+}
 
 local C = {
     bg = Color3.fromRGB(10,10,18), sidebar = Color3.fromRGB(14,14,24),
@@ -76,6 +102,7 @@ local function snapshot()
         AutoKnock = { enabled = AutoKnock.enabled },
         AutoEnchant = { enabled = AutoEnchant.enabled, slot = AutoEnchant.slot, wanted = AutoEnchant.wanted },
         AutoBoss = { enabled = AutoBoss.enabled },
+        AutoShop = { enabled = AutoShop.enabled, wanted = AutoShop.wanted },
         AntiAFK = { enabled = AntiAFK.enabled },
         EggHub = { current = EggHub.current },
         MenuBind = { key = MenuBind.key },
@@ -91,6 +118,10 @@ local function applyConfig(cfg)
     local function set(k, v) if UISetters[k] then UISetters[k](v) end end
     if cfg.AutoKnock then set("AutoKnock.enabled", cfg.AutoKnock.enabled) end
     if cfg.AutoBoss then set("AutoBoss.enabled", cfg.AutoBoss.enabled) end
+    if cfg.AutoShop then
+        set("AutoShop.enabled", cfg.AutoShop.enabled)
+        AutoShop.wanted = cfg.AutoShop.wanted or {}
+    end
     if cfg.AntiAFK then set("AntiAFK.enabled", cfg.AntiAFK.enabled) end
     if cfg.EggHub then EggHub.current = cfg.EggHub.current end
     if cfg.MenuBind then set("MenuBind.key", cfg.MenuBind.key or "RightShift") end
@@ -583,6 +614,266 @@ local bossCard = card(pageH)
 toggleRow(bossCard, "Auto-defeat", "TPs and spam-taps when boss spawns", false, function(v) AutoBoss.enabled = v end, "AutoBoss.enabled")
 local bossStatus, bossDot = statusBar(pageH)
 
+-- ================= MERCHANT PAGE =================
+local pageMerch = makePage("Merchant")
+
+-- Hero banner
+local banner = Instance.new("Frame", pageMerch)
+banner.Size = UDim2.new(1, 0, 0, 92); banner.BackgroundColor3 = C.panel; banner.BorderSizePixel = 0
+Instance.new("UICorner", banner).CornerRadius = UDim.new(0, 14)
+local bannerStroke = Instance.new("UIStroke", banner)
+bannerStroke.Color = C.accent3; bannerStroke.Thickness = 1.2; bannerStroke.Transparency = 0.3
+local bannerGrad = Instance.new("UIGradient", banner)
+bannerGrad.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 15, 55)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(60, 20, 50)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(45, 10, 35)),
+}
+bannerGrad.Rotation = 25
+local pumpkin = Instance.new("TextLabel", banner)
+pumpkin.BackgroundTransparency = 1; pumpkin.Position = UDim2.new(0, 18, 0, 0); pumpkin.Size = UDim2.new(0, 60, 1, 0)
+pumpkin.Text = "🎃"; pumpkin.TextSize = 44; pumpkin.Font = Enum.Font.GothamBold
+pumpkin.TextColor3 = Color3.fromRGB(255, 160, 60); pumpkin.TextXAlignment = Enum.TextXAlignment.Center
+local bTitle = Instance.new("TextLabel", banner)
+bTitle.BackgroundTransparency = 1; bTitle.Position = UDim2.new(0, 86, 0, 16); bTitle.Size = UDim2.new(1, -200, 0, 26)
+bTitle.Text = "HALLOWEEN MERCHANT"; bTitle.TextColor3 = C.text
+bTitle.Font = Enum.Font.GothamBold; bTitle.TextSize = 20; bTitle.TextXAlignment = Enum.TextXAlignment.Left
+local bSub = Instance.new("TextLabel", banner)
+bSub.BackgroundTransparency = 1; bSub.Position = UDim2.new(0, 86, 0, 42); bSub.Size = UDim2.new(1, -200, 0, 18)
+bSub.Text = "auto-buys selected items when you have the candy"
+bSub.TextColor3 = C.textDim; bSub.Font = Enum.Font.GothamMedium; bSub.TextSize = 11
+bSub.TextXAlignment = Enum.TextXAlignment.Left
+local bHint = Instance.new("TextLabel", banner)
+bHint.BackgroundTransparency = 1; bHint.Position = UDim2.new(0, 86, 0, 62); bHint.Size = UDim2.new(1, -200, 0, 16)
+bHint.Text = "respects per-day limits · retries on failure"
+bHint.TextColor3 = C.muted; bHint.Font = Enum.Font.Gotham; bHint.TextSize = 10
+bHint.TextXAlignment = Enum.TextXAlignment.Left
+local candyPill = Instance.new("Frame", banner)
+candyPill.AnchorPoint = Vector2.new(1, 0.5); candyPill.Position = UDim2.new(1, -16, 0.5, 0)
+candyPill.Size = UDim2.new(0, 108, 0, 36); candyPill.BackgroundColor3 = C.cardAlt; candyPill.BorderSizePixel = 0
+Instance.new("UICorner", candyPill).CornerRadius = UDim.new(1, 0)
+local cps = Instance.new("UIStroke", candyPill); cps.Color = C.accent3; cps.Thickness = 1.2; cps.Transparency = 0.4
+local candyIcon = Instance.new("TextLabel", candyPill)
+candyIcon.BackgroundTransparency = 1; candyIcon.Position = UDim2.new(0, 10, 0, 0); candyIcon.Size = UDim2.new(0, 22, 1, 0)
+candyIcon.Text = "🍬"; candyIcon.TextSize = 16; candyIcon.Font = Enum.Font.GothamBold
+local candyAmt = Instance.new("TextLabel", candyPill)
+candyAmt.BackgroundTransparency = 1; candyAmt.Position = UDim2.new(0, 34, 0, 0); candyAmt.Size = UDim2.new(1, -42, 1, 0)
+candyAmt.Text = "—"; candyAmt.TextColor3 = C.text; candyAmt.Font = Enum.Font.GothamBold; candyAmt.TextSize = 13
+candyAmt.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Controls
+local ctl = card(pageMerch)
+toggleRow(ctl, "Auto-Buy Enabled", "Loops through selected items every ~2s", false,
+    function(v) AutoShop.enabled = v end, "AutoShop.enabled")
+
+local btnRow = Instance.new("Frame", ctl); btnRow.BackgroundTransparency = 1
+btnRow.Size = UDim2.new(1, 0, 0, 32)
+local btnLayout = Instance.new("UIListLayout", btnRow)
+btnLayout.FillDirection = Enum.FillDirection.Horizontal; btnLayout.Padding = UDim.new(0, 8)
+btnLayout.SortOrder = Enum.SortOrder.LayoutOrder
+local function miniBtn(text, color, cb)
+    local b = Instance.new("TextButton", btnRow)
+    b.Size = UDim2.new(0, 110, 1, 0); b.BackgroundColor3 = C.cardAlt; b.BorderSizePixel = 0
+    b.Text = text; b.TextColor3 = color; b.Font = Enum.Font.GothamBold; b.TextSize = 11
+    b.AutoButtonColor = false
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+    local st = Instance.new("UIStroke", b); st.Color = color; st.Thickness = 1; st.Transparency = 0.6
+    b.MouseEnter:Connect(function() tween(b, { BackgroundColor3 = C.hover }); tween(st, { Transparency = 0.2 }) end)
+    b.MouseLeave:Connect(function() tween(b, { BackgroundColor3 = C.cardAlt }); tween(st, { Transparency = 0.6 }) end)
+    b.MouseButton1Click:Connect(cb)
+    return b
+end
+local shopStatus, shopDot = statusBar(pageMerch)
+
+-- Item cards
+local itemsWrap = Instance.new("Frame", pageMerch); itemsWrap.BackgroundTransparency = 1
+itemsWrap.Size = UDim2.new(1, 0, 0, 0); itemsWrap.AutomaticSize = Enum.AutomaticSize.Y
+local iwl = Instance.new("UIListLayout", itemsWrap); iwl.Padding = UDim.new(0, 10); iwl.SortOrder = Enum.SortOrder.LayoutOrder
+
+local itemRefreshers = {}
+local function makeItemCard(it)
+    local tierCol = TIER_COLORS[it.tier] or C.accent1
+    local card = Instance.new("TextButton", itemsWrap)
+    card.Size = UDim2.new(1, 0, 0, 86); card.BackgroundColor3 = C.card; card.BorderSizePixel = 0
+    card.Text = ""; card.AutoButtonColor = false
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 12)
+    local st = Instance.new("UIStroke", card); st.Color = C.border; st.Thickness = 1; st.Transparency = 0.5
+    -- left accent bar
+    local accent = Instance.new("Frame", card)
+    accent.Size = UDim2.new(0, 4, 1, -16); accent.Position = UDim2.new(0, 8, 0, 8)
+    accent.BackgroundColor3 = tierCol; accent.BorderSizePixel = 0
+    Instance.new("UICorner", accent).CornerRadius = UDim.new(0, 2)
+    -- name
+    local nameLbl = Instance.new("TextLabel", card)
+    nameLbl.BackgroundTransparency = 1; nameLbl.Position = UDim2.new(0, 22, 0, 10); nameLbl.Size = UDim2.new(1, -200, 0, 20)
+    nameLbl.Text = it.name; nameLbl.TextColor3 = C.text
+    nameLbl.Font = Enum.Font.GothamBold; nameLbl.TextSize = 14; nameLbl.TextXAlignment = Enum.TextXAlignment.Left
+    -- tag badge
+    local tag = Instance.new("Frame", card)
+    tag.Position = UDim2.new(0, 22, 0, 32); tag.Size = UDim2.new(0, 0, 0, 16); tag.AutomaticSize = Enum.AutomaticSize.X
+    tag.BackgroundColor3 = tierCol; tag.BackgroundTransparency = 0.75; tag.BorderSizePixel = 0
+    Instance.new("UICorner", tag).CornerRadius = UDim.new(0, 4)
+    local tagPad = Instance.new("UIPadding", tag)
+    tagPad.PaddingLeft = UDim.new(0, 6); tagPad.PaddingRight = UDim.new(0, 6)
+    local tagLbl = Instance.new("TextLabel", tag)
+    tagLbl.BackgroundTransparency = 1; tagLbl.Size = UDim2.new(0, 0, 1, 0); tagLbl.AutomaticSize = Enum.AutomaticSize.X
+    tagLbl.Text = it.tag; tagLbl.TextColor3 = tierCol
+    tagLbl.Font = Enum.Font.GothamBold; tagLbl.TextSize = 9
+    -- chips
+    local chipRow = Instance.new("Frame", card); chipRow.BackgroundTransparency = 1
+    chipRow.Position = UDim2.new(0, 22, 0, 56); chipRow.Size = UDim2.new(1, -200, 0, 20)
+    local crl = Instance.new("UIListLayout", chipRow)
+    crl.FillDirection = Enum.FillDirection.Horizontal; crl.Padding = UDim.new(0, 6); crl.SortOrder = Enum.SortOrder.LayoutOrder
+    for _, chipTxt in ipairs(it.chips) do
+        local chip = Instance.new("Frame", chipRow)
+        chip.Size = UDim2.new(0, 0, 1, 0); chip.AutomaticSize = Enum.AutomaticSize.X
+        chip.BackgroundColor3 = C.cardAlt; chip.BorderSizePixel = 0
+        Instance.new("UICorner", chip).CornerRadius = UDim.new(0, 4)
+        local cp = Instance.new("UIPadding", chip)
+        cp.PaddingLeft = UDim.new(0, 8); cp.PaddingRight = UDim.new(0, 8)
+        local cl = Instance.new("TextLabel", chip)
+        cl.BackgroundTransparency = 1; cl.Size = UDim2.new(0, 0, 1, 0); cl.AutomaticSize = Enum.AutomaticSize.X
+        cl.Text = chipTxt; cl.TextColor3 = C.textDim
+        cl.Font = Enum.Font.GothamMedium; cl.TextSize = 10
+    end
+    -- price pill
+    local price = Instance.new("Frame", card)
+    price.AnchorPoint = Vector2.new(1, 0); price.Position = UDim2.new(1, -72, 0, 10)
+    price.Size = UDim2.new(0, 94, 0, 24); price.BackgroundColor3 = C.cardAlt; price.BorderSizePixel = 0
+    Instance.new("UICorner", price).CornerRadius = UDim.new(1, 0)
+    local pst = Instance.new("UIStroke", price); pst.Color = C.accent3; pst.Thickness = 1; pst.Transparency = 0.5
+    local pIco = Instance.new("TextLabel", price)
+    pIco.BackgroundTransparency = 1; pIco.Position = UDim2.new(0, 8, 0, 0); pIco.Size = UDim2.new(0, 14, 1, 0)
+    pIco.Text = "🍬"; pIco.TextSize = 11; pIco.Font = Enum.Font.GothamBold
+    local pTxt = Instance.new("TextLabel", price)
+    pTxt.BackgroundTransparency = 1; pTxt.Position = UDim2.new(0, 24, 0, 0); pTxt.Size = UDim2.new(1, -30, 1, 0)
+    pTxt.Text = tostring(it.price); pTxt.TextColor3 = C.text
+    pTxt.Font = Enum.Font.GothamBold; pTxt.TextSize = 12; pTxt.TextXAlignment = Enum.TextXAlignment.Left
+    -- limit label
+    if it.limit and it.limit > 0 then
+        local lim = Instance.new("TextLabel", card)
+        lim.BackgroundTransparency = 1; lim.AnchorPoint = Vector2.new(1, 0)
+        lim.Position = UDim2.new(1, -72, 0, 38); lim.Size = UDim2.new(0, 94, 0, 14)
+        lim.Text = ("limit %d/day"):format(it.limit); lim.TextColor3 = C.muted
+        lim.Font = Enum.Font.GothamMedium; lim.TextSize = 9; lim.TextXAlignment = Enum.TextXAlignment.Right
+    end
+    -- toggle pill (right side)
+    local toggle = Instance.new("Frame", card)
+    toggle.AnchorPoint = Vector2.new(1, 1); toggle.Position = UDim2.new(1, -16, 1, -12)
+    toggle.Size = UDim2.new(0, 44, 0, 22); toggle.BackgroundColor3 = C.cardAlt; toggle.BorderSizePixel = 0
+    Instance.new("UICorner", toggle).CornerRadius = UDim.new(1, 0)
+    local ts = Instance.new("UIStroke", toggle); ts.Color = C.border; ts.Thickness = 1; ts.Transparency = 0.3
+    local knob = Instance.new("Frame", toggle)
+    knob.Size = UDim2.new(0, 16, 0, 16); knob.Position = UDim2.new(0, 3, 0.5, -8)
+    knob.BackgroundColor3 = C.muted; knob.BorderSizePixel = 0
+    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+    local function refresh()
+        local on = AutoShop.wanted[it.id] == true
+        if on then
+            tween(toggle, { BackgroundColor3 = tierCol }, 0.15)
+            tween(ts, { Color = tierCol, Transparency = 0 })
+            tween(knob, { Position = UDim2.new(0, 25, 0.5, -8), BackgroundColor3 = Color3.new(1,1,1) }, 0.18, Enum.EasingStyle.Back)
+            tween(st, { Color = tierCol, Transparency = 0.15 })
+            tween(card, { BackgroundColor3 = C.cardAlt }, 0.15)
+        else
+            tween(toggle, { BackgroundColor3 = C.cardAlt }, 0.15)
+            tween(ts, { Color = C.border, Transparency = 0.3 })
+            tween(knob, { Position = UDim2.new(0, 3, 0.5, -8), BackgroundColor3 = C.muted }, 0.15)
+            tween(st, { Color = C.border, Transparency = 0.5 })
+            tween(card, { BackgroundColor3 = C.card }, 0.15)
+        end
+    end
+    card.MouseEnter:Connect(function()
+        if not (AutoShop.wanted[it.id]) then tween(st, { Color = tierCol, Transparency = 0.3 }) end
+    end)
+    card.MouseLeave:Connect(function()
+        if not (AutoShop.wanted[it.id]) then tween(st, { Color = C.border, Transparency = 0.5 }) end
+    end)
+    card.MouseButton1Click:Connect(function()
+        AutoShop.wanted[it.id] = (not AutoShop.wanted[it.id]) or nil
+        refresh()
+    end)
+    refresh()
+    table.insert(itemRefreshers, refresh)
+end
+for _, it in ipairs(SHOP_ITEMS) do makeItemCard(it) end
+
+miniBtn("ENABLE ALL", C.good, function()
+    for _, it in ipairs(SHOP_ITEMS) do AutoShop.wanted[it.id] = true end
+    for _, f in ipairs(itemRefreshers) do f() end
+end)
+miniBtn("CLEAR ALL", C.bad, function()
+    for k in pairs(AutoShop.wanted) do AutoShop.wanted[k] = nil end
+    for _, f in ipairs(itemRefreshers) do f() end
+end)
+miniBtn("DAILIES ONLY", C.accent2, function()
+    for k in pairs(AutoShop.wanted) do AutoShop.wanted[k] = nil end
+    for _, it in ipairs(SHOP_ITEMS) do
+        if it.limit and it.limit > 0 and it.limit <= 3 then AutoShop.wanted[it.id] = true end
+    end
+    for _, f in ipairs(itemRefreshers) do f() end
+end)
+
+-- Auto-buy loop
+task.spawn(function()
+    local cooldown = {}
+    while true do
+        if AutoShop.enabled then
+            local bought, failed = 0, 0
+            local anyWanted = false
+            for _, it in ipairs(SHOP_ITEMS) do
+                if AutoShop.wanted[it.id] and AutoShop.enabled then
+                    anyWanted = true
+                    if (cooldown[it.id] or 0) <= tick() then
+                        setStatus(shopStatus, shopDot, ("buying %s…"):format(it.name), C.accent3)
+                        local ok, res = pcall(function() return ShopBuy:InvokeServer({ Id = it.id }) end)
+                        if ok and res ~= false and res ~= nil then
+                            bought = bought + 1
+                            task.wait(0.35)
+                        else
+                            failed = failed + 1
+                            cooldown[it.id] = tick() + 30
+                        end
+                        task.wait(0.2)
+                    end
+                end
+            end
+            if not anyWanted then
+                setStatus(shopStatus, shopDot, "idle · select items above", C.muted)
+            elseif bought > 0 then
+                setStatus(shopStatus, shopDot, ("bought %d · retrying rest"):format(bought), C.good)
+            else
+                setStatus(shopStatus, shopDot, "nothing bought · waiting for candy", C.warn)
+            end
+            task.wait(2)
+        else
+            setStatus(shopStatus, shopDot, "idle", C.muted); task.wait(0.5)
+        end
+    end
+end)
+
+-- Candy counter live refresh
+task.spawn(function()
+    while true do
+        local leaderstats = lp:FindFirstChild("leaderstats")
+        local cc = leaderstats and (leaderstats:FindFirstChild("CandyCorn") or leaderstats:FindFirstChild("Candy Corn"))
+        if not cc then
+            for _, v in ipairs(lp:GetDescendants()) do
+                if v:IsA("NumberValue") or v:IsA("IntValue") then
+                    local n = v.Name:lower()
+                    if n:find("candy") then cc = v; break end
+                end
+            end
+        end
+        if cc then
+            local n = cc.Value
+            if n >= 1000 then candyAmt.Text = string.format("%.1fK", n/1000)
+            else candyAmt.Text = tostring(math.floor(n)) end
+        end
+        task.wait(1)
+    end
+end)
+
 local pageEggs = makePage("Eggs")
 sectionHeader(pageEggs, "SELECT YOUR EGG")
 local eggCardWrap = card(pageEggs)
@@ -757,6 +1048,7 @@ tinyLabel(autoCard, "CONFIG NAME (blank = off)")
 makeTB(autoCard, "my-config", getAutoload() or "", function(t) setAutoload(t) end)
 
 makeTab("Halloween", "H")
+makeTab("Merchant", "🎃")
 makeTab("Eggs", "G")
 makeTab("Enchanting", "E")
 makeTab("Misc", "M")
