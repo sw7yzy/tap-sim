@@ -168,7 +168,15 @@ pcall(function() lp.PlayerGui:FindFirstChild("TSRebornMenu"):Destroy() end)
 local gui = Instance.new("ScreenGui")
 gui.Name = "TSRebornMenu"; gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling; gui.IgnoreGuiInset = true
-gui.Parent = lp:WaitForChild("PlayerGui")
+gui.DisplayOrder = 2147483647
+-- Parent to CoreGui so game UIs can't cover us; fall back to PlayerGui if blocked
+local parented = false
+pcall(function()
+    if gethui then gui.Parent = gethui(); parented = true
+    elseif syn and syn.protect_gui then syn.protect_gui(gui); gui.Parent = game:GetService("CoreGui"); parented = true
+    else gui.Parent = game:GetService("CoreGui"); parented = true end
+end)
+if not parented then gui.Parent = lp:WaitForChild("PlayerGui") end
 
 local function tween(o, p, t, s) TS:Create(o, TweenInfo.new(t or 0.2, s or Enum.EasingStyle.Quint), p):Play() end
 
