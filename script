@@ -11,6 +11,9 @@ local lp = Players.LocalPlayer
 local Knock  = RS.RemoteServices.TrickOrTreatService.RF.Knock
 local ShopBuy = RS.RemoteServices.HalloweenShopService.RF.Purchase
 local BoostUse = RS.RemoteServices.BoostService.RF.Use
+local ClaimQuest = RS.RemoteServices.QuestService.RF.ClaimQuest
+local IndexClaimAll = RS.RemoteServices.PetIndexService.RE.ClaimAllRequested
+local RedeemCode = RS.RemoteServices.CodeService.RF.Redeem
 local Travel = RS.RemoteServices.IslandService.RF.Travel
 local Enc    = RS.RemoteServices.EnchantService.RF
 local Tap    = RS.RemoteServices.TapService.RE.TapRequested
@@ -26,6 +29,9 @@ local AutoEnchant = { enabled = false, slot = 1, wanted = {} }
 local AutoBoss = { enabled = false }
 local AutoShop = { enabled = false, wanted = {} }
 local AutoPotion = { enabled = false, wanted = {} }
+local AutoQuests = { enabled = false }
+local AutoIndex  = { enabled = false }
+local AutoCodes  = { enabled = false, codes = "", redeemed = {} }
 local AntiAFK = { enabled = false }
 local EggHub = { current = nil, autoHatch = true }
 local MenuBind = { key = "RightShift" }
@@ -106,6 +112,9 @@ local function snapshot()
         AutoBoss = { enabled = AutoBoss.enabled },
         AutoShop = { enabled = AutoShop.enabled, wanted = AutoShop.wanted },
         AutoPotion = { enabled = AutoPotion.enabled, wanted = AutoPotion.wanted },
+        AutoQuests = { enabled = AutoQuests.enabled },
+        AutoIndex  = { enabled = AutoIndex.enabled },
+        AutoCodes  = { enabled = AutoCodes.enabled, codes = AutoCodes.codes },
         AntiAFK = { enabled = AntiAFK.enabled },
         EggHub = { current = EggHub.current },
         MenuBind = { key = MenuBind.key },
@@ -128,6 +137,12 @@ local function applyConfig(cfg)
     if cfg.AutoPotion then
         set("AutoPotion.enabled", cfg.AutoPotion.enabled)
         AutoPotion.wanted = cfg.AutoPotion.wanted or {}
+    end
+    if cfg.AutoQuests then set("AutoQuests.enabled", cfg.AutoQuests.enabled) end
+    if cfg.AutoIndex  then set("AutoIndex.enabled",  cfg.AutoIndex.enabled)  end
+    if cfg.AutoCodes  then
+        set("AutoCodes.enabled", cfg.AutoCodes.enabled)
+        AutoCodes.codes = cfg.AutoCodes.codes or ""
     end
     if cfg.AntiAFK then set("AntiAFK.enabled", cfg.AntiAFK.enabled) end
     if cfg.EggHub then EggHub.current = cfg.EggHub.current end
@@ -1018,6 +1033,98 @@ task.spawn(function()
     end
 end)
 
+-- ================= REWARDS PAGE =================
+local QUEST_DEFS = {}
+pcall(function()
+    local qc = require(RS.Shared.Quests.QuestConfig)
+    if type(qc) == "table" and type(qc.Definitions) == "table" then
+        for id in pairs(qc.Definitions) do table.insert(QUEST_DEFS, id) end
+    end
+end)
+
+local pageRew = makePage("Rewards")
+sectionHeader(pageRew, "AUTO-CLAIM QUESTS")
+local qCard = card(pageRew)
+toggleRow(qCard, "Enabled", "Spam-claims every quest id every 30s", false,
+    function(v) AutoQuests.enabled = v end, "AutoQuests.enabled")
+local qStatus, qDot = statusBar(pageRew)
+
+sectionHeader(pageRew, "AUTO-CLAIM PET INDEX")
+local iCard = card(pageRew)
+toggleRow(iCard, "Enabled", "Fires ClaimAllRequested every 60s", false,
+    function(v) AutoIndex.enabled = v end, "AutoIndex.enabled")
+local iStatus, iDot = statusBar(pageRew)
+
+sectionHeader(pageRew, "AUTO-REDEEM CODES")
+local cCard = card(pageRew)
+toggleRow(cCard, "Enabled", "Tries every code below once", false,
+    function(v) AutoCodes.enabled = v end, "AutoCodes.enabled")
+tinyLabel(cCard, "CODES (one per line)")
+makeTB(cCard, "code1\ncode2\n...", AutoCodes.codes,
+    function(t) AutoCodes.codes = t; AutoCodes.redeemed = {} end, "AutoCodes.codes")
+local codeStatus, codeDot = statusBar(pageRew)
+
+-- Loops
+task.spawn(function()
+    while true do
+        if AutoQuests.enabled and #QUEST_DEFS > 0 then
+            local okN, failN = 0, 0
+            for _, qid in ipairs(QUEST_DEFS) do
+                if not AutoQuests.enabled then break end
+                local ok, res = pcall(function() return ClaimQuest:InvokeServer(qid) end)
+                if ok and res ~= false and res ~= nil and (type(res) ~= "table" or res.Success ~= false) then
+                    okN = okN + 1
+                else failN = failN + 1 end
+                task.wait(0.1)
+            end
+            setStatus(qStatus, qDot, ("tried %d · claimed %d"):format(okN + failN, okN),
+                okN > 0 and C.good or C.muted)
+            task.wait(30)
+        else
+            setStatus(qStatus, qDot, "idle", C.muted); task.wait(0.5)
+        end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if AutoIndex.enabled then
+            pcall(function() IndexClaimAll:FireServer() end)
+            setStatus(iStatus, iDot, "claimed · waiting", C.good)
+            task.wait(60)
+        else
+            setStatus(iStatus, iDot, "idle", C.muted); task.wait(0.5)
+        end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if AutoCodes.enabled and AutoCodes.codes ~= "" then
+            local newOk, newFail, already = 0, 0, 0
+            for line in (AutoCodes.codes or ""):gmatch("[^\r\n]+") do
+                local code = line:gsub("^%s+", ""):gsub("%s+$", "")
+                if code ~= "" and not AutoCodes.redeemed[code] then
+                    local ok, res = pcall(function() return RedeemCode:InvokeServer(code) end)
+                    AutoCodes.redeemed[code] = true
+                    if ok and type(res) == "table" then
+                        if res.Success then newOk = newOk + 1
+                        elseif res.Reason == "AlreadyRedeemed" then already = already + 1
+                        else newFail = newFail + 1 end
+                    else newFail = newFail + 1 end
+                    task.wait(0.5)
+                end
+            end
+            setStatus(codeStatus, codeDot,
+                ("+%d new · %d already · %d invalid"):format(newOk, already, newFail),
+                newOk > 0 and C.good or C.textDim)
+            task.wait(300)
+        else
+            setStatus(codeStatus, codeDot, "idle", C.muted); task.wait(0.5)
+        end
+    end
+end)
+
 local pageEggs = makePage("Eggs")
 sectionHeader(pageEggs, "SELECT YOUR EGG")
 local eggCardWrap = card(pageEggs)
@@ -1194,6 +1301,7 @@ makeTB(autoCard, "my-config", getAutoload() or "", function(t) setAutoload(t) en
 makeTab("Halloween", "👻")
 makeTab("Merchant", "🎃")
 makeTab("Potions", "🧪")
+makeTab("Rewards", "🎁")
 makeTab("Enchanting", "✨")
 makeTab("Eggs", "🥚")
 makeTab("Misc", "🛠️")
